@@ -5,94 +5,123 @@ import (
 	"fmt"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
-	"log/slog"
 	"os"
 	"path"
-	client "sbom.observer/cli/pkg/client"
+	"sbom.observer/cli/pkg/client"
 	"sbom.observer/cli/pkg/execx"
+	"sbom.observer/cli/pkg/log"
 	"strings"
 	"time"
 )
 
-var Debug = slog.Debug
-
-func NewProgressBar(total int64, description string, debugging bool) *progressbar.ProgressBar {
+func NewProgressBar(total int64, description string, silent bool) *progressbar.ProgressBar {
 	// disable when debugging
-	if debugging {
+	if silent {
 		return progressbar.DefaultSilent(total, description)
 	}
 
-	return progressbar.Default(total, description)
+	//return progressbar.Default(total, description)
 
+	return progressbar.NewOptions(int(total),
+		progressbar.OptionSetWriter(os.Stderr), //you should install "github.com/k0kubun/go-ansi"
+		progressbar.OptionSetDescription(description),
+		progressbar.OptionThrottle(65*time.Millisecond),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSpinnerType(14),
+		progressbar.OptionSetWidth(25),
+		//progressbar.OptionFullWidth(),
+		progressbar.OptionSetRenderBlankState(true),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "=",
+			SaucerHead:    ">",
+			SaucerPadding: " ",
+			BarStart:      "[",
+			BarEnd:        "]",
+		}))
 }
 
 func KubernetesCommand(cmd *cobra.Command, args []string) {
-	isDebugging, _ := cmd.Flags().GetBool("debug")
+	flagSbom, _ := cmd.Flags().GetBool("sbom")
+	flagUpload, _ := cmd.Flags().GetBool("upload")
+	flagDebug, _ := cmd.Flags().GetBool("debug")
+	flagSilent, _ := cmd.Flags().GetBool("silent")
+	flagSilent = flagSilent || flagDebug
 
-	slog.Info("creating k8s snapshot using 'kubectl'")
+	scannerEngine, _ := cmd.Flags().GetString("scanner")
+
+	log.Print("Creating k8s snapshot using 'kubectl'")
 
 	// kubectl get svc,nodes,pods,namespaces --all-namespaces -o json
-	kubectlArgs := []string{"get", "svc,nodes,pods,namespaces", "--all-namespaces", "-o", "json"}
+	kubectlArgs := []string{"get", "svc,nodes,pods,namespaces", "-o", "json"}
 
-	slog.Debug(fmt.Sprintf("running 'kubectl %s'", strings.Join(kubectlArgs, " ")))
-	output, extErr := execx.Exec("kubectl", kubectlArgs...)
+	if value, _ := cmd.Flags().GetString("namespace"); value != "" {
+		kubectlArgs = append(kubectlArgs, "-n", value)
+	} else {
+		kubectlArgs = append(kubectlArgs, "--all-namespaces")
+	}
+
+	if value, _ := cmd.Flags().GetString("kubeconfig"); value != "" {
+		kubectlArgs = append(args, "--kubeconfig", value)
+	}
+
+	output, extErr := Kubectl(kubectlArgs...)
 	if extErr != nil {
-		if errors.Is(extErr, execx.ErrNotFound) {
-			slog.Error("kubectl not found in $PATH")
-			// TODO: add download instructions
-			os.Exit(1)
-		}
-
 		var extCmdErr *execx.ExternalCommandError
 		if errors.As(extErr, &extCmdErr) {
-			slog.Error("failed to create snapshot for cluster with 'kubectl'", "err", extErr)
-			slog.Debug("error details", "message", extCmdErr.Message, "exitcode", extCmdErr.ExitCode, "stderr", extCmdErr.StdErr)
+			log.Error("failed to create snapshot for cluster with 'kubectl'", "err", extErr)
+			log.Debug("error details", "message", extCmdErr.Message, "exitcode", extCmdErr.ExitCode, "stderr", extCmdErr.StdErr)
 			os.Exit(1)
 		}
 
-		slog.Error("failed to get k8s snapshot with 'kubectl'", "err", extErr)
+		log.Error("failed to get k8s snapshot with 'kubectl'", "err", extErr)
 		os.Exit(1)
 	}
 
 	// TODO: validate output (parse, sanity check)
 
 	// create output filename
-	tempDir, err := os.MkdirTemp("", "observer-cli")
-	if err != nil {
-		slog.Error("failed to create temporary directory", "err", err)
-		os.Exit(1)
+	outputDirectory, err := cmd.Flags().GetString("output")
+
+	if outputDirectory == "" {
+		tempDir, err := os.MkdirTemp("", "observer-cli")
+		if err != nil {
+			log.Error("failed to create temporary directory", "err", err)
+			os.Exit(1)
+		}
+
+		outputDirectory = tempDir
+
+		//defer func() {
+		//	err := os.RemoveAll(tempDir)
+		//	if err != nil {
+		//		log.Error("failed to remove temporary directory", "err", err)
+		//		os.Exit(1)
+		//	}
+		//	log.Debug("removed temporary directory", "dir", tempDir)
+		//}()
 	}
 
-	//defer func() {
-	//	err := os.RemoveAll(tempDir)
-	//	if err != nil {
-	//		slog.Error("failed to remove temporary directory", "err", err)
-	//		os.Exit(1)
-	//	}
-	//	slog.Debug("removed temporary directory", "dir", tempDir)
-	//}()
-
-	snapshotFile := path.Join(tempDir, fmt.Sprintf("k8s-snapshot-%s.json", time.Now().Format("20060102-1504")))
+	snapshotFile := path.Join(outputDirectory, fmt.Sprintf("k8s-snapshot-%s.json", time.Now().Format("20060102-1504")))
 
 	// write output to file
 	err = os.WriteFile(snapshotFile, []byte(output), 0644)
 	if err != nil {
-		slog.Error("Error writing k8s snapshot to file", "filename", snapshotFile, "err", err)
+		log.Error("Error writing k8s snapshot to file", "filename", snapshotFile, "err", err)
 		os.Exit(1)
 	}
 
-	slog.Debug(fmt.Sprintf("wrote k8s snapshot to file %s", snapshotFile))
+	log.Debug(fmt.Sprintf("wrote k8s snapshot to file %s", snapshotFile))
 
 	// upload candidates
 	var filesToUpload []string
 	filesToUpload = append(filesToUpload, snapshotFile)
 
 	// create sboms
-	if enabled, _ := cmd.Flags().GetBool("sbom"); enabled {
+	if flagSbom {
 		// parse snapshot
 		snapshot, err := ParseKubetclSnapshot([]byte(output))
 		if err != nil {
-			slog.Error("error parsing k8s snapshot", "err", err)
+			log.Error("error parsing k8s snapshot", "err", err)
 			os.Exit(1)
 		}
 
@@ -104,28 +133,30 @@ func KubernetesCommand(cmd *cobra.Command, args []string) {
 			}
 		}
 
-		slog.Info(fmt.Sprintf("creating SBOMs for %d images found in snapshot", len(images)))
+		log.Printf("Creating SBOMs for %d images found in snapshot", len(images))
 
 		// create sboms
-		sboms, err := createImageSboms(images, tempDir)
+		sboms, err := createImageSboms(scannerEngine, images, outputDirectory, flagSilent)
 		if err != nil {
-			slog.Error("error creating image sboms", "err", err)
+			log.Error("error creating image sboms", "err", err)
 			os.Exit(1)
 		}
 
 		filesToUpload = append(filesToUpload, sboms...)
+
+		log.Printf("Created %d BOM(s)", len(sboms))
 	}
 
 	// upload
-	if enabled, _ := cmd.Flags().GetBool("upload"); enabled {
+	if flagUpload {
 		c := client.NewObserverClient()
 
-		progress := NewProgressBar(int64(len(filesToUpload)), "Uploading attestations", isDebugging)
+		progress := NewProgressBar(int64(len(filesToUpload)), "Uploading BOMs", flagSilent)
 
 		for _, file := range filesToUpload {
 			err = c.UploadFile(file)
 			if err != nil {
-				slog.Error("error uploading file", "file", file, "err", err)
+				log.Error("error uploading", "file", file, "err", err)
 				os.Exit(1)
 			}
 
@@ -134,20 +165,26 @@ func KubernetesCommand(cmd *cobra.Command, args []string) {
 
 		_ = progress.Finish()
 		_ = progress.Clear()
+
+		log.Printf("Uploaded %d BOM(s)", len(filesToUpload))
+	}
+
+	if !flagUpload {
+		log.Printf("Wrote %d BOM(s) to %s", len(filesToUpload), outputDirectory)
 	}
 }
 
-func createImageSboms(images map[string]Image, tempDir string) ([]string, error) {
+func createImageSboms(engine string, images map[string]Image, tempDir string, flagSilent bool) ([]string, error) {
 	var sboms []string
 
-	// update Trivy DB
-	err := TrivyUpdateDb()
+	// update Trivy Java DB
+	err := TrivyUpdateJavaDb()
 	if err != nil {
 		return nil, err
 	}
 
 	// create sboms
-	progress := NewProgressBar(int64(len(images)), "Scanning images", false)
+	progress := NewProgressBar(int64(len(images)), "Scanning images", flagSilent)
 
 NextImage:
 	for _, image := range images {
@@ -163,7 +200,7 @@ NextImage:
 			pullable = fmt.Sprintf("%s:%s", image.RepositoryURL, image.Tag)
 		}
 
-		err := CreateImageSbom(pullable, output)
+		err := CreateImageSbom(engine, pullable, output)
 		if err != nil {
 			// user is already notified, so we just skip this image
 			_ = progress.Add(1)
@@ -180,14 +217,30 @@ NextImage:
 	return sboms, nil
 }
 
+func Kubectl(args ...string) (string, error) {
+	log.Debug(fmt.Sprintf("kubectl 'trivy %s'", strings.Join(args, " ")))
+
+	output, err := execx.Exec("kubectl", args...)
+	if err != nil {
+		if errors.Is(err, execx.ErrNotFound) {
+			log.Error("kubectl not found in $PATH")
+			log.Print("Download and install kubectl from https://kubernetes.io/docs/tasks/tools/")
+			// TODO: add curl download instructions
+			os.Exit(1)
+		}
+	}
+
+	return output, err
+}
+
 func Trivy(args ...string) (string, error) {
-	slog.Debug(fmt.Sprintf("running 'trivy %s'", strings.Join(args, " ")))
+	log.Debug(fmt.Sprintf("running 'trivy %s'", strings.Join(args, " ")))
 
 	output, err := execx.Exec("trivy", args...)
 	if err != nil {
 		if errors.Is(err, execx.ErrNotFound) {
-			slog.Error("Trivy not found in $PATH")
-			slog.Info("Download and install Trivy from https://github.com/aquasecurity/trivy/releases")
+			log.Error("Trivy not found in $PATH")
+			log.Print("Download and install Trivy from https://github.com/aquasecurity/trivy/releases")
 			// TODO: add curl download instructions (use Github releases API?)
 			os.Exit(1)
 		}
@@ -196,36 +249,88 @@ func Trivy(args ...string) (string, error) {
 	return output, err
 }
 
-func CreateImageSbom(image string, output string) error {
-	output, err := Trivy("image", "--skip-db-update", "--skip-java-db-update", "--format", "cyclonedx", "--output", output, image)
-	if err != nil {
-		var extCmdErr *execx.ExternalCommandError
-		if errors.As(err, &extCmdErr) {
-			slog.Error("failed to create SBOM for image with 'trivy' generator", "image", image, "exitcode", extCmdErr.ExitCode)
-			_, _ = fmt.Fprint(os.Stderr, "-- Trivy output --\n")
-			_, _ = fmt.Fprint(os.Stderr, extCmdErr.StdErr)
-			_, _ = fmt.Fprint(os.Stderr, "\n------------------\n")
-			return err
-		}
-
-		slog.Error("failed to create sbom for image using Trivy", "err", err)
-		return err
-	}
-
-	return nil
-}
-
 func TrivyUpdateDb() error {
-	slog.Debug("updating Trivy vulnerability database")
+	log.Debug("updating Trivy vulnerability database")
 
 	_, extErr := Trivy("image", "--download-db-only")
 	if extErr != nil {
 		return fmt.Errorf("failed to update Trivy vulnerability database: %w", extErr)
 	}
 
-	_, extErr = Trivy("image", "--download-java-db-only")
+	return nil
+}
+
+func TrivyUpdateJavaDb() error {
+	log.Debug("updating Trivy java database")
+
+	_, extErr := Trivy("image", "--download-java-db-only")
 	if extErr != nil {
 		return fmt.Errorf("failed to update Trivy java vulnerability database: %w", extErr)
+	}
+
+	return nil
+}
+
+func Syft(args ...string) (string, error) {
+	log.Debug(fmt.Sprintf("running 'syft %s'", strings.Join(args, " ")))
+
+	output, err := execx.Exec("syft", args...)
+	if err != nil {
+		if errors.Is(err, execx.ErrNotFound) {
+			log.Error("Syft not found in $PATH")
+			log.Print("Download and install Syft from https://github.com/anchore/syft")
+			// TODO: add curl download instructions (use Github releases API?)
+			os.Exit(1)
+		}
+	}
+
+	return output, err
+}
+
+func CreateImageSbom(engine string, image string, output string) error {
+	switch engine {
+	case "trivy":
+		return CreateImageSbomTrivy(image, output)
+	case "syft":
+		return CreateImageSbomSyft(image, output)
+	}
+	return nil
+}
+
+func CreateImageSbomTrivy(image string, output string) error {
+	output, err := Trivy("image", "--skip-db-update", "--skip-java-db-update", "--format", "cyclonedx", "--output", output, image)
+	if err != nil {
+		var extCmdErr *execx.ExternalCommandError
+		if errors.As(err, &extCmdErr) {
+			log.Error("failed to create SBOM for image with 'trivy' generator", "image", image, "exitcode", extCmdErr.ExitCode)
+			_, _ = fmt.Fprint(os.Stderr, "-- Trivy output --\n")
+			_, _ = fmt.Fprint(os.Stderr, extCmdErr.StdErr)
+			_, _ = fmt.Fprint(os.Stderr, "\n------------------\n")
+			return err
+		}
+
+		log.Error("failed to create sbom for image using Trivy", "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func CreateImageSbomSyft(image string, output string) error {
+	//syft -o cyclonedx-json=/tmp/syft.cdx.json  postgres:latest
+	output, err := Syft("-o", "cyclonedx-json="+output, image)
+	if err != nil {
+		var extCmdErr *execx.ExternalCommandError
+		if errors.As(err, &extCmdErr) {
+			log.Error("failed to create SBOM for image with 'syft' generator", "image", image, "exitcode", extCmdErr.ExitCode)
+			_, _ = fmt.Fprint(os.Stderr, "-- Trivy output --\n")
+			_, _ = fmt.Fprint(os.Stderr, extCmdErr.StdErr)
+			_, _ = fmt.Fprint(os.Stderr, "\n------------------\n")
+			return err
+		}
+
+		log.Error("failed to create sbom for image using Syft", "err", err)
+		return err
 	}
 
 	return nil

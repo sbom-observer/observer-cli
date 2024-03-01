@@ -1,33 +1,32 @@
 package cmd
 
 import (
-	"fmt"
-	"log/slog"
-	"os"
-
 	"github.com/spf13/cobra"
+	"os"
+	"sbom.observer/cli/pkg/log"
 )
+
+const Version = "0.1"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "observer",
+	Use:   "observer-cli",
 	Short: "Create, manage and upload SBOMs to https://sbom.observer",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Long: `Create, manage and upload SBOMs to https://sbom.observer:
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+PREVIEW: This is a preview release and is not yet ready for production use.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
 
-	Version: "0.1",
+	Version: Version,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// setup logging
 		if debug, _ := cmd.Flags().GetBool("debug"); debug {
-			slog.SetLogLoggerLevel(slog.LevelDebug)
+			log.Logger.SetLevel(log.DebugLevel)
 		}
+
+		//log.Printf("observer-cli v%s", Version)
 	},
 }
 
@@ -45,14 +44,14 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cli.yaml)")
+	//rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cli.yaml)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug logging")
+	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug logging (implies silent mode)")
+	rootCmd.PersistentFlags().Bool("silent", false, "Silent mode (no progress bars)")
 }
 
 func NotImplemented(cmd *cobra.Command, args []string) {
-	_, _ = fmt.Fprintf(os.Stderr, "not implemented\n")
-	os.Exit(1)
+	log.Fatal("Not implemented yet!")
 }

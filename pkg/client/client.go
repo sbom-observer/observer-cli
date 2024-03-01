@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sbom.observer/cli/pkg/log"
 )
 
 type Config struct {
@@ -47,14 +47,10 @@ func loadEnvironmentConfig(config Config) Config {
 func loadDefaultConfig() Config {
 	config := DefaultConfig
 
-	config.Endpoint = "http://localhost:9000/v1"
-	config.Namespace = "dns-01HQK48DAKNAZ3QA0TFZ1WKV29"
-	config.Token = "pat-09a49cd1-4364-45ed-97d3-9cadd39b32a8"
-
 	// find default config location for this user and OS
 	home, err := os.UserHomeDir()
 	if err != nil {
-		slog.Error("failed to get user home dir", "err", err)
+		log.Error("failed to get user home dir", "err", err)
 		os.Exit(1)
 	}
 
@@ -69,15 +65,15 @@ func loadDefaultConfig() Config {
 		configFile = filepath.Join(os.Getenv("APPDATA"), "observer", "config.json")
 	}
 
-	slog.Debug("loading config from", "file", configFile)
+	log.Debug("loading config from", "file", configFile)
 
 	f, err := os.Open(configFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			slog.Debug("no config file found, using default config")
+			log.Debug("no config file found, using default config")
 			return loadEnvironmentConfig(config)
 		}
-		slog.Error("failed to open config file", "file", configFile, "err", err)
+		log.Error("failed to open config file", "file", configFile, "err", err)
 		os.Exit(1)
 	}
 
@@ -85,7 +81,7 @@ func loadDefaultConfig() Config {
 
 	err = json.NewDecoder(f).Decode(&config)
 	if err != nil {
-		slog.Error("failed to decode config file", "file", configFile, "err", err)
+		log.Error("failed to decode config file", "file", configFile, "err", err)
 		os.Exit(1)
 	}
 
@@ -102,7 +98,11 @@ func NewObserverClient() *ObserverClient {
 }
 
 func (c *ObserverClient) UploadFile(filename string) error {
-	slog.Debug("uploading file", "filename", filename)
+	log.Debug("uploading file", "filename", filename)
+
+	if c.config.Token == "" {
+		log.Fatal("no token found, please set OBSERVER_TOKEN environment variable")
+	}
 
 	// create multipart body
 	body := &bytes.Buffer{}

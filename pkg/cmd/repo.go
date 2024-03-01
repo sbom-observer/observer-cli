@@ -8,7 +8,7 @@ import (
 var repoCmd = &cobra.Command{
 	Use:   "repo",
 	Short: "Create an SBOM from a source repository (or monorepo) (TODO)",
-	Long:  `TODO`,
+	Long:  `Create an SBOM from a source repository (or monorepo) (TODO)`,
 	Run:   NotImplemented,
 }
 

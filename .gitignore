@@ -24,3 +24,5 @@ go.work
 /TODO.txt
 /scratch/
 observer
+
+dist/

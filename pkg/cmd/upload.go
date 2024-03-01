@@ -8,7 +8,7 @@ import (
 var uploadCmd = &cobra.Command{
 	Use:   "upload",
 	Short: "Upload one or more attestations (SBOMs) to https://sbom.observer (TODO)",
-	Long:  `Upload one or more attestations (SBOMs) to https://sbom.observer`,
+	Long:  `Upload one or more attestations (SBOMs) to https://sbom.observer (TODO)`,
 	Run:   NotImplemented,
 }
 
