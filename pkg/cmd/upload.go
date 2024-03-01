@@ -2,26 +2,48 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"os"
+	"sbom.observer/cli/pkg/client"
+	"sbom.observer/cli/pkg/log"
 )
 
 // uploadCmd represents the upload command
 var uploadCmd = &cobra.Command{
-	Use:   "upload",
-	Short: "Upload one or more attestations (SBOMs) to https://sbom.observer (TODO)",
-	Long:  `Upload one or more attestations (SBOMs) to https://sbom.observer (TODO)`,
-	Run:   NotImplemented,
+	Use:   "upload <sbom>...",
+	Short: "Upload one or more attestations (SBOMs) to https://sbom.observer",
+	Long:  `Upload one or more attestations (SBOMs) to https://sbom.observer`,
+	Run:   UploadCommand,
 }
 
 func init() {
 	rootCmd.AddCommand(uploadCmd)
+}
 
-	// Here you will define your flags and configuration settings.
+func UploadCommand(cmd *cobra.Command, args []string) {
+	flagDebug, _ := cmd.Flags().GetBool("debug")
+	flagSilent, _ := cmd.Flags().GetBool("silent")
+	flagSilent = flagSilent || flagDebug
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// uploadCmd.PersistentFlags().String("foo", "", "A help for foo")
+	if len(args) < 1 {
+		log.Fatal("missing required argument <sbom>...")
+	}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// uploadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	c := client.NewObserverClient()
+
+	progress := log.NewProgressBar(int64(len(args)), "Uploading BOMs", flagSilent)
+
+	for _, file := range args {
+		err := c.UploadFile(file)
+		if err != nil {
+			log.Error("error uploading", "file", file, "err", err)
+			os.Exit(1)
+		}
+
+		_ = progress.Add(1)
+	}
+
+	_ = progress.Finish()
+	_ = progress.Clear()
+
+	log.Printf("Uploaded %d BOM(s)", len(args))
 }
