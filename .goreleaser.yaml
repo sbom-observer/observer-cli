@@ -18,10 +18,10 @@ builds:
       - linux
       - windows
       - darwin
-#    hooks:
-#      post:
+    hooks:
+      post:
 #         runs for every which is unnecessary
-#        - trivy repo -f cyclonedx -o dist/bom.cdx.json .
+        - trivy repo -f cyclonedx -o dist/bom.cdx.json .
 
 archives:
   - format: tar.gz
