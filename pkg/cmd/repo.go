@@ -108,21 +108,6 @@ func RunRepoCommand(cmd *cobra.Command, args []string) {
 
 	}
 
-	// output to stdout
-	if flagOutput == "" {
-		for _, target := range targets {
-			for _, result := range target.results {
-				f, err := os.Open(result)
-				if err != nil {
-					log.Fatal("error opening file", "file", result, "err", err)
-				}
-				_, _ = io.Copy(os.Stdout, f)
-				_ = f.Close()
-				//_ = os.Remove(result)
-			}
-		}
-	}
-
 	// upload
 	if flagUpload {
 		var filesToUpload []string
@@ -153,17 +138,36 @@ func RunRepoCommand(cmd *cobra.Command, args []string) {
 		log.Printf("Uploaded %d BOM(s)", len(filesToUpload))
 	}
 
-	// move results to the final output
-	if flagOutput != "" && isDirectory(flagOutput) {
+	// output to stdout
+	if flagOutput == "" {
 		for _, target := range targets {
 			for _, result := range target.results {
-				destination := filepath.Join(flagOutput, filepath.Base(result))
-				err = os.Rename(result, destination)
+				f, err := os.Open(result)
 				if err != nil {
-					log.Fatal("failed to move result to output destination", "err", err)
+					log.Fatal("error opening file", "file", result, "err", err)
 				}
-				log.Infof("wrote CycloneDX BOM to %s", destination)
+				_, _ = io.Copy(os.Stdout, f)
+				_ = f.Close()
+				//_ = os.Remove(result)
 			}
+		}
+	}
+
+	// move results to the final output
+	if flagOutput != "" {
+		if isDirectory(flagOutput) {
+			for _, target := range targets {
+				for _, result := range target.results {
+					destination := filepath.Join(flagOutput, filepath.Base(result))
+					err = os.Rename(result, destination)
+					if err != nil {
+						log.Fatal("failed to move result to output destination", "err", err)
+					}
+					log.Infof("wrote CycloneDX BOM to %s", destination)
+				}
+			}
+		} else {
+			log.Error("output destination is not a directory", "output", flagOutput)
 		}
 	}
 }
@@ -312,9 +316,10 @@ func mergeSBOMs(files []string, destination string, config ScanConfig) error {
 			merged.Metadata.Tools.Components = &[]cdx.Component{}
 		}
 		*merged.Metadata.Tools.Components = append(*merged.Metadata.Tools.Components, cdx.Component{
-			Type:    cdx.ComponentTypeApplication,
-			Name:    "sbom.observer (cli)",
-			Version: types.Version,
+			Type:      cdx.ComponentTypeApplication,
+			Name:      "sbom.observer (cli)",
+			Publisher: "Bitfront AB",
+			Version:   types.Version,
 			ExternalReferences: &[]cdx.ExternalReference{
 				{
 					Type: cdx.ERTypeWebsite,
@@ -331,6 +336,7 @@ func mergeSBOMs(files []string, destination string, config ScanConfig) error {
 
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "  ")
+	encoder.SetEscapeHTML(false)
 	err = encoder.Encode(merged)
 	out.Close()
 	if err != nil {
