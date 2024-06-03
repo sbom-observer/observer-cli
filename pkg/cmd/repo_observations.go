@@ -79,9 +79,10 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 		Tools: &cdx.ToolsChoice{
 			Components: &[]cdx.Component{
 				cdx.Component{
-					Type:    cdx.ComponentTypeApplication,
-					Name:    "sbom.observer (cli)",
-					Version: types.Version,
+					Type:      cdx.ComponentTypeApplication,
+					Name:      "sbom.observer (cli)",
+					Publisher: "Bitfront AB",
+					Version:   types.Version,
 					ExternalReferences: &[]cdx.ExternalReference{
 						{
 							Type: cdx.ERTypeWebsite,
@@ -138,8 +139,7 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 	nameIndex := map[string]int{}
 
 	for _, dep := range deps.Code {
-		// TODO: add distro
-		purl := fmt.Sprintf("pkg:deb/debian/%s@%s?arch=%s", dep.Name, dep.Version, dep.Arch)
+		purl := purlForPackage(dep)
 
 		if dep.IsSourcePackage {
 			purl = fmt.Sprintf("pkg:generic/%s@%s", dep.Name, dep.Version)
@@ -179,8 +179,7 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 			continue
 		}
 
-		// TODO: add distro qualifier
-		purl := fmt.Sprintf("pkg:deb/debian/%s@%s?arch=%s", dep.Name, dep.Version, dep.Arch)
+		purl := purlForPackage(dep)
 
 		component := cdx.Component{
 			BOMRef:     purl,
@@ -230,8 +229,7 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 			continue
 		}
 
-		// TODO: add distro qualifier
-		purl := fmt.Sprintf("pkg:deb/debian/%s@%s?arch=%s", dep.Name, dep.Version, dep.Arch)
+		purl := purlForPackage(dep)
 
 		component := cdx.Component{
 			BOMRef:     purl,
@@ -288,12 +286,26 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
+	encoder.SetEscapeHTML(false)
 	err = encoder.Encode(bom)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func purlForPackage(dep buildops.Package) string {
+	var distro string
+
+	switch dep.OSFamily.Name {
+	case "Debian":
+		distro = fmt.Sprintf("debian-%s", dep.OSFamily.Release)
+	default:
+		distro = "unknown"
+	}
+
+	return fmt.Sprintf("pkg:deb/debian/%s@%s?arch=%s&distro=%s", dep.Name, dep.Version, dep.Arch, distro)
 }
 
 // HashFileSha256 calculates the SHA-256 hash of a file

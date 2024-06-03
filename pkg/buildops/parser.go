@@ -6,6 +6,7 @@ import (
 	"golang.org/x/exp/maps"
 	"os"
 	"sbom.observer/cli/pkg/licenses"
+	"sbom.observer/cli/pkg/ospkgs"
 	"sort"
 	"strings"
 )
@@ -94,6 +95,7 @@ type Package struct {
 	Files           []string
 	IsSourcePackage bool
 	Licenses        []licenses.License
+	OSFamily        ospkgs.OSFamily
 }
 
 type BuildDependencies struct {
@@ -124,9 +126,15 @@ func ResolveDependencies(opens []string, executions []string) (*BuildDependencie
 		}
 	}
 
+	// figure out the distro
+	osFamily, err := ospkgs.DetectOSFamily()
+	if err != nil {
+		return nil, fmt.Errorf("failed to detect OS family: %w", err)
+	}
+
 	switch packageManager {
 	case "dpkg":
-		return resolveDpkgDependencies(opens, executions)
+		return resolveDpkgDependencies(osFamily, opens, executions)
 	default:
 		return nil, fmt.Errorf("unsupported build environment '%s' - cannot resolve dependencies", packageManager)
 	}

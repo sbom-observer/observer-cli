@@ -6,6 +6,7 @@ import (
 	"golang.org/x/exp/maps"
 	"path/filepath"
 	"sbom.observer/cli/pkg/log"
+	"sbom.observer/cli/pkg/ospkgs"
 	"sbom.observer/cli/pkg/ospkgs/dpkg"
 	"slices"
 	"strings"
@@ -13,7 +14,7 @@ import (
 
 // TODO: move package
 
-func resolveDpkgDependencies(opens []string, executions []string) (*BuildDependencies, error) {
+func resolveDpkgDependencies(osFamily ospkgs.OSFamily, opens []string, executions []string) (*BuildDependencies, error) {
 	log := log.Logger.WithPrefix("buildops")
 
 	indexer := dpkg.NewIndexer()
@@ -59,6 +60,7 @@ func resolveDpkgDependencies(opens []string, executions []string) (*BuildDepende
 			Version:      osPkg.Version,
 			Arch:         osPkg.Architecture,
 			Dependencies: osPkg.Dependencies,
+			OSFamily:     osFamily,
 		}
 
 		licensesForPackage, err := indexer.LicensesForPackage(osPkg.Name)
@@ -123,6 +125,7 @@ func resolveDpkgDependencies(opens []string, executions []string) (*BuildDepende
 			Arch:         osPkg.Architecture,
 			Dependencies: osPkg.Dependencies,
 			Files:        []string{fileName},
+			OSFamily:     osFamily,
 		}
 
 		licensesForPackage, err := indexer.LicensesForPackage(osPkg.Name)
@@ -142,7 +145,7 @@ func resolveDpkgDependencies(opens []string, executions []string) (*BuildDepende
 	// transitive dependencies
 	var transitive []Package
 	for _, pkg := range append(maps.Values(code), maps.Values(tools)...) {
-		transitive = resolveDependencies(pkg.Dependencies, transitive, indexer)
+		transitive = resolveDependencies(pkg.Dependencies, transitive, osFamily, indexer)
 	}
 
 	// gather results
@@ -182,7 +185,7 @@ func resolveDpkgDependencies(opens []string, executions []string) (*BuildDepende
 	return result, nil
 }
 
-func resolveDependencies(names []string, collection []Package, indexer *dpkg.Indexer) []Package {
+func resolveDependencies(names []string, collection []Package, family ospkgs.OSFamily, indexer *dpkg.Indexer) []Package {
 	for _, dep := range names {
 		depPkg := indexer.InstalledPackage(dep)
 		if depPkg == nil {
@@ -199,10 +202,11 @@ func resolveDependencies(names []string, collection []Package, indexer *dpkg.Ind
 			Name:         depPkg.Name,
 			Version:      depPkg.Version,
 			Dependencies: depPkg.Dependencies,
+			OSFamily:     family,
 		}
 
 		collection = append(collection, osDependencyPackage)
-		collection = resolveDependencies(osDependencyPackage.Dependencies, collection, indexer)
+		collection = resolveDependencies(osDependencyPackage.Dependencies, collection, family, indexer)
 	}
 
 	return collection
