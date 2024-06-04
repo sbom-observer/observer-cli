@@ -79,13 +79,13 @@ func resolveDpkgDependencies(osFamily ospkgs.OSFamily, opens []string, execution
 
 		if osPkg.SourceName != "" && (osPkg.Name != osPkg.SourceName || osPkg.Version != osPkg.SourceVersion) {
 			sourcePackage := Package{
-				Id:              fmt.Sprintf("%s@%s", osPkg.SourceName, osPkg.SourceVersion),
+				Id:              fmt.Sprintf("src:%s@%s", osPkg.SourceName, osPkg.SourceVersion),
 				Name:            osPkg.SourceName,
 				Version:         osPkg.SourceVersion,
 				IsSourcePackage: true,
 			}
 
-			pkg.Dependencies = append(pkg.Dependencies, sourcePackage.Name)
+			pkg.Dependencies = append(pkg.Dependencies, sourcePackage.Id)
 
 			if _, found := code[sourcePackage.Id]; !found {
 				code[sourcePackage.Id] = &sourcePackage
@@ -146,6 +146,43 @@ func resolveDpkgDependencies(osFamily ospkgs.OSFamily, opens []string, execution
 	var transitive []Package
 	for _, pkg := range append(maps.Values(code), maps.Values(tools)...) {
 		transitive = resolveDependencies(pkg.Dependencies, transitive, osFamily, indexer)
+	}
+
+	// resolve dependency names -> ids
+	nameIndex := map[string]string{}
+
+	for _, pkg := range append(maps.Values(code), maps.Values(tools)...) {
+		if !pkg.IsSourcePackage {
+			nameIndex[pkg.Name] = pkg.Id
+		}
+	}
+
+	for _, pkg := range transitive {
+		if !pkg.IsSourcePackage {
+			nameIndex[pkg.Name] = pkg.Id
+		}
+	}
+
+	for _, pkg := range append(maps.Values(code), maps.Values(tools)...) {
+		var resolved []string
+		for _, dep := range pkg.Dependencies {
+			if !strings.Contains(dep, "@") {
+				dep = nameIndex[dep]
+			}
+			resolved = append(resolved, dep)
+		}
+		pkg.Dependencies = resolved
+	}
+
+	for i := range transitive {
+		var resolved []string
+		for _, dep := range transitive[i].Dependencies {
+			if !strings.Contains(dep, "@") {
+				dep = nameIndex[dep]
+			}
+			resolved = append(resolved, dep)
+		}
+		transitive[i].Dependencies = resolved
 	}
 
 	// gather results

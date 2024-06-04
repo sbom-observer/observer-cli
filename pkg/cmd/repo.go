@@ -316,10 +316,11 @@ func mergeSBOMs(files []string, destination string, config ScanConfig) error {
 			merged.Metadata.Tools.Components = &[]cdx.Component{}
 		}
 		*merged.Metadata.Tools.Components = append(*merged.Metadata.Tools.Components, cdx.Component{
-			Type:      cdx.ComponentTypeApplication,
-			Name:      "sbom.observer (cli)",
-			Publisher: "Bitfront AB",
-			Version:   types.Version,
+			Type:        cdx.ComponentTypeApplication,
+			Name:        "observer",
+			Description: "sbom.observer (cli)",
+			Publisher:   "Bitfront AB",
+			Version:     types.Version,
 			ExternalReferences: &[]cdx.ExternalReference{
 				{
 					Type: cdx.ERTypeWebsite,

@@ -79,10 +79,11 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 		Tools: &cdx.ToolsChoice{
 			Components: &[]cdx.Component{
 				cdx.Component{
-					Type:      cdx.ComponentTypeApplication,
-					Name:      "sbom.observer (cli)",
-					Publisher: "Bitfront AB",
-					Version:   types.Version,
+					Type:        cdx.ComponentTypeApplication,
+					Name:        "observer",
+					Description: "sbom.observer (cli)",
+					Publisher:   "Bitfront AB",
+					Version:     types.Version,
 					ExternalReferences: &[]cdx.ExternalReference{
 						{
 							Type: cdx.ERTypeWebsite,
@@ -136,7 +137,6 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 	var rootDependencies []string
 
 	index := map[string]int{}
-	nameIndex := map[string]int{}
 
 	for _, dep := range deps.Code {
 		purl := purlForPackage(dep)
@@ -166,7 +166,6 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 
 		components = append(components, component)
 		index[dep.Id] = len(components) - 1
-		nameIndex[dep.Name] = len(components) - 1
 
 		if !dep.IsSourcePackage {
 			rootDependencies = append(rootDependencies, component.BOMRef)
@@ -214,7 +213,6 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 
 		components = append(components, component)
 		index[dep.Id] = len(components) - 1
-		nameIndex[dep.Name] = len(components) - 1
 
 		if dep.IsSourcePackage {
 			log.Error("cyclonedx: tools: build observation tool is unexpectedly transitive dependency", "tool", dep.Name)
@@ -241,7 +239,6 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 
 		components = append(components, component)
 		index[dep.Id] = len(components) - 1
-		nameIndex[dep.Name] = len(components) - 1
 	}
 
 	// resolve code and package dependencies
@@ -250,7 +247,7 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 		component := components[index[dep.Id]]
 		if len(dep.Dependencies) > 0 {
 			for _, sourceDep := range dep.Dependencies {
-				i, found := nameIndex[sourceDep]
+				i, found := index[sourceDep]
 				if !found {
 					log.Warn("cyclonedx: dependencies: build observation package dependency not found", "sourceDep", sourceDep)
 					continue
