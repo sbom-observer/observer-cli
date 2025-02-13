@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	cdx "github.com/CycloneDX/cyclonedx-go"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sbom.observer/cli/pkg/client"
-	"sbom.observer/cli/pkg/ids"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/types"
+	"sbom.observer/cli/pkg/cdxutil"
+	"sbom.observer/cli/pkg/scanner"
 	"text/template"
 	"time"
+
+	cdx "github.com/CycloneDX/cyclonedx-go"
+	"github.com/spf13/cobra"
+	"sbom.observer/cli/pkg/client"
+	"sbom.observer/cli/pkg/log"
 )
 
 // repoCmd represents the repo command
@@ -38,7 +39,9 @@ func init() {
 	repoCmd.Flags().Uint("depth", 1, "Recursively scan subdirectories down to max tree depth (e.g. monorepos)")
 
 	// output
-	repoCmd.Flags().StringP("output", "o", "", "Output file for the results (default: stdout)")
+	repoCmd.Flags().StringP("output", "o", "", "Output directory or file (merge) for the results (default: stdout)")
+	repoCmd.Flags().BoolP("merge", "m", false, "Merge the results into a single BOM")
+	//repoCmd.Flags().Bool("super", false, "Merge the results with a super BOM")
 }
 
 func RunRepoCommand(cmd *cobra.Command, args []string) {
@@ -49,84 +52,134 @@ func RunRepoCommand(cmd *cobra.Command, args []string) {
 	flagDepth, _ := cmd.Flags().GetUint("depth")
 
 	flagOutput, _ := cmd.Flags().GetString("output")
+	flagMerge, _ := cmd.Flags().GetBool("merge")
+	// TODO: load config from args[0]
 
 	if len(args) != 1 {
 		log.Fatal("the path to a source repository is required as an argument")
 	}
 
-	targets, err := findScanTargets(args[0], flagDepth)
+	targets, err := scanner.FindScanTargets(args[0], flagDepth)
 	if err != nil {
 		log.Fatal("failed to find scan targets", "err", err)
 	}
 
-	// pre-scan work
-	//if len(targets) > 0 {
-	//	// update Trivy Java DB
-	//	err = TrivyUpdateJavaDb()
-	//	if err != nil {
-	//		log.Debug("failed to update Trivy Java DB ", "err", err)
-	//	}
-	//}
+	if len(targets) == 0 {
+		log.Infof("No targets found in %s", args[0])
+		os.Exit(0)
+	}
 
-	// TODO: merge output flag
-
-	// TODO: load config from args[0]
+	// TODO: remove
+	for _, target := range targets {
+		log.Debugf("found target %s -> %v", target.Path, target.Files)
+	}
 
 	// scan targets
 	for _, target := range targets {
-		log.Infof("Generating SBOM for '%s'", target.path)
-		log.Debug("Generating SBOM", "path", target.path, "target", target.files)
+		log.Infof("Generating SBOM for '%s'", target.Path)
+		log.Debug("Generating SBOM", "path", target.Path, "target", target.Files)
 
-		for _, scanner := range scannersForTarget(*target) {
-			output := filepath.Join(os.TempDir(), fmt.Sprintf("sbom-%s-%s.cdx.json", ids.NextUUID(), time.Now().Format("20060102-150405")))
-			log.Debug("running scanner", "id", scanner.Id(), "output", output)
-			err = scanner.Scan(target, output)
+		for _, scanner := range scanner.ScannersForTarget(*target) {
+			log.Debug("running scanner", "id", scanner.Id())
+			err = scanner.Scan(target)
 			if err != nil {
-				log.Fatal("failed to create SBOM for repository", "path", target.path, "err", err)
+				log.Fatal("failed to create SBOM for repository", "path", target.Path, "err", err)
 			}
 		}
 
-		// post-process output
-		mergedFilenameTemplate := "sbom-{{.Name}}-{{.Module}}-{{.Timestamp}}.cdx.json"
-		if target.config.OutputTemplate != "" {
-			mergedFilenameTemplate = target.config.OutputTemplate
+		// fallback to directory name if no name is set
+		if target.Config.Component.Name == "" {
+			target.Config.Component.Name = filepath.Base(target.Path)
 		}
 
-		mergedOutput, err := generateFilename(mergedFilenameTemplate, "", target.config.Component)
+		// merge results and add metadata
+		log.Debugf("merging %d BOMs for target %s", len(target.Results), target.Path)
+
+		target.Merged, err = cdxutil.DestructiveMergeSBOMs(target.Config, target.Results)
 		if err != nil {
-			log.Fatal("failed to generate output filename", "err", err)
+			log.Fatal("failed to merge SBOMs for target", "target", target.Path, "err", err)
 		}
 
-		mergedOutputFullPath := filepath.Join(os.TempDir(), mergedOutput)
-		err = mergeSBOMs(target.results, mergedOutputFullPath, target.config)
-		if err != nil {
-			log.Fatal("failed to merge SBOMs for target", "target", target.path, "err", err)
+		log.Debugf("merged %d BOMs for target %s -> %s@%s", len(target.Results), target.Path, target.Merged.Metadata.Component.Name, target.Merged.Metadata.Component.Version)
+	}
+
+	// TODO: implement --merge flag (and --merge-with-ref or --super)
+
+	if flagMerge {
+		if len(targets) != 1 {
+			log.Fatal("merge flag can only be used with a single target")
+		}
+	}
+
+	// write to output
+	if flagOutput != "" {
+		if !isDirectory(flagOutput) && !flagMerge {
+			log.Fatalf("output destination %s is not a directory. Did you mean --merge?", flagOutput)
 		}
 
-		log.Debugf("merged %d BOMs for target %s -> %s", len(target.results), target.path, mergedOutputFullPath)
-		target.results = []string{mergedOutputFullPath}
+		for _, target := range targets {
+			outputFilename := flagOutput
 
+			if !flagMerge {
+				outputTemplate := "sbom-{{.Name}}-{{.Module}}-{{.Timestamp}}.cdx.json"
+				if target.Config.OutputTemplate != "" {
+					outputTemplate = target.Config.OutputTemplate
+				}
+
+				outputFilename, err = generateFilename(outputTemplate, "", target.Merged.Metadata.Component)
+				if err != nil {
+					log.Fatal("failed to generate output filename", "err", err)
+				}
+
+				outputFilename, err = filepath.Abs(filepath.Join(flagOutput, outputFilename))
+				if err != nil {
+					log.Fatal("failed to get absolute path for output filename", "err", err)
+				}
+			}
+
+			log.Debugf("writing SBOM to %s", outputFilename)
+
+			out, err := os.Create(outputFilename)
+			if err != nil {
+				log.Fatal("failed to create output file", "filename", outputFilename, "err", err)
+			}
+
+			// use cdx provided encoder
+			encoder := cdx.NewBOMEncoder(out, cdx.BOMFileFormatJSON)
+			encoder.SetPretty(true)
+			err = encoder.Encode(target.Merged)
+			if err != nil {
+				log.Fatal("failed to write output file", "filename", outputFilename, "err", err)
+			}
+
+			_ = out.Close()
+		}
 	}
 
 	// upload
 	if flagUpload {
-		var filesToUpload []string
-
-		for _, target := range targets {
-			for _, result := range target.results {
-				filesToUpload = append(filesToUpload, result)
-			}
-		}
+		progress := log.NewProgressBar(int64(len(targets)), "Uploading BOMs", flagSilent)
 
 		c := client.NewObserverClient()
 
-		progress := log.NewProgressBar(int64(len(filesToUpload)), "Uploading BOMs", flagSilent)
+		for _, target := range targets {
+			outputTemplate := "sbom-{{.Name}}-{{.Module}}-{{.Timestamp}}.cdx.json"
+			if target.Config.OutputTemplate != "" {
+				outputTemplate = target.Config.OutputTemplate
+			}
 
-		for _, file := range filesToUpload {
-			err = c.UploadFile(file)
+			outputFilename, err := generateFilename(outputTemplate, "", target.Merged.Metadata.Component)
 			if err != nil {
-				log.Error("error uploading", "file", file, "err", err)
-				os.Exit(1)
+				log.Fatal("failed to generate output filename", "err", err)
+			}
+
+			err = c.UploadSource(outputFilename, func(w io.Writer) error {
+				encoder := cdx.NewBOMEncoder(w, cdx.BOMFileFormatJSON)
+				encoder.SetPretty(true)
+				return encoder.Encode(target.Merged)
+			})
+			if err != nil {
+				log.Fatal("error when uploading", "file", outputFilename, "err", err)
 			}
 
 			_ = progress.Add(1)
@@ -135,44 +188,22 @@ func RunRepoCommand(cmd *cobra.Command, args []string) {
 		_ = progress.Finish()
 		_ = progress.Clear()
 
-		log.Printf("Uploaded %d BOM(s)", len(filesToUpload))
+		log.Printf("Uploaded %d BOM(s)", len(targets))
 	}
 
 	// output to stdout
 	if flagOutput == "" {
 		for _, target := range targets {
-			for _, result := range target.results {
-				f, err := os.Open(result)
-				if err != nil {
-					log.Fatal("error opening file", "file", result, "err", err)
-				}
-				_, _ = io.Copy(os.Stdout, f)
-				_ = f.Close()
-				//_ = os.Remove(result)
+			for _, result := range target.Results {
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				_ = enc.Encode(result)
 			}
-		}
-	}
-
-	// move results to the final output
-	if flagOutput != "" {
-		if isDirectory(flagOutput) {
-			for _, target := range targets {
-				for _, result := range target.results {
-					destination := filepath.Join(flagOutput, filepath.Base(result))
-					err = os.Rename(result, destination)
-					if err != nil {
-						log.Fatal("failed to move result to output destination", "err", err)
-					}
-					log.Infof("wrote CycloneDX BOM to %s", destination)
-				}
-			}
-		} else {
-			log.Error("output destination is not a directory", "output", flagOutput)
 		}
 	}
 }
 
-func generateFilename(templateString string, module string, component ScanConfigComponent) (string, error) {
+func generateFilename(templateString string, module string, component *cdx.Component) (string, error) {
 	t, err := template.New("filename").Parse(templateString)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse filename template: %w", err)
@@ -212,222 +243,4 @@ func isDirectory(filename string) bool {
 	}
 	// Check if the FileMode is a directory
 	return fileInfo.IsDir()
-}
-
-func mergeSBOMs(files []string, destination string, config ScanConfig) error {
-	var boms []*cdx.BOM
-	for _, filename := range files {
-		f, err := os.Open(filename)
-		if err != nil {
-			return err
-		}
-		var bom cdx.BOM
-		err = json.NewDecoder(f).Decode(&bom)
-		f.Close()
-		if err != nil {
-			return err
-		}
-		boms = append(boms, &bom)
-	}
-
-	merged, err := mergeCycloneDX(boms)
-	if err != nil {
-		return err
-	}
-
-	// set metadata
-	if config.Component.Type != "" {
-		merged.Metadata.Component.Type = cdx.ComponentType(config.Component.Type)
-	}
-	if config.Component.Name != "" {
-		merged.Metadata.Component.Name = config.Component.Name
-	}
-	if config.Component.Group != "" {
-		merged.Metadata.Component.Group = config.Component.Group
-	}
-	if config.Component.Version != "" {
-		merged.Metadata.Component.Version = config.Component.Version
-	}
-	if config.Component.Description != "" {
-		merged.Metadata.Component.Description = config.Component.Description
-	}
-	if config.Component.License != "" {
-		merged.Metadata.Component.Licenses = &cdx.Licenses{
-			{
-				License: &cdx.License{
-					ID: config.Component.License,
-				},
-			},
-		}
-	}
-
-	if config.Supplier.Name != "" {
-		merged.Metadata.Supplier = &cdx.OrganizationalEntity{
-			Name: config.Supplier.Name,
-			URL:  &[]string{config.Supplier.URL},
-		}
-		if len(config.Supplier.Contacts) > 0 {
-			merged.Metadata.Supplier.Contact = &[]cdx.OrganizationalContact{}
-			for _, contact := range config.Supplier.Contacts {
-				*merged.Metadata.Supplier.Contact = append(*merged.Metadata.Supplier.Contact, cdx.OrganizationalContact{
-					Name:  contact.Name,
-					Email: contact.Email,
-					Phone: contact.Phone,
-				})
-			}
-		}
-	}
-
-	if config.Manufacturer.Name != "" {
-		merged.Metadata.Supplier = &cdx.OrganizationalEntity{
-			Name: config.Manufacturer.Name,
-			URL:  &[]string{config.Manufacturer.URL},
-		}
-		if len(config.Manufacturer.Contacts) > 0 {
-			merged.Metadata.Supplier.Contact = &[]cdx.OrganizationalContact{}
-			for _, contact := range config.Manufacturer.Contacts {
-				*merged.Metadata.Supplier.Contact = append(*merged.Metadata.Supplier.Contact, cdx.OrganizationalContact{
-					Name:  contact.Name,
-					Email: contact.Email,
-					Phone: contact.Phone,
-				})
-			}
-		}
-	}
-
-	// TODO: metadata manufacture
-	// TODO: metadata authors
-
-	// add observer-cli tool if missing
-	toolFound := false
-	if merged.Metadata.Tools != nil && merged.Metadata.Tools.Components != nil {
-		for _, tool := range *merged.Metadata.Tools.Components {
-			if tool.Name == "observer" {
-				toolFound = true
-			}
-		}
-	}
-
-	if !toolFound {
-		if merged.Metadata.Tools == nil {
-			merged.Metadata.Tools = &cdx.ToolsChoice{}
-		}
-		if merged.Metadata.Tools.Components == nil {
-			merged.Metadata.Tools.Components = &[]cdx.Component{}
-		}
-		*merged.Metadata.Tools.Components = append(*merged.Metadata.Tools.Components, cdx.Component{
-			Type:        cdx.ComponentTypeApplication,
-			Name:        "observer",
-			Description: "sbom.observer (cli)",
-			Publisher:   "Bitfront AB",
-			Version:     types.Version,
-			ExternalReferences: &[]cdx.ExternalReference{
-				{
-					Type: cdx.ERTypeWebsite,
-					URL:  "https://github.com/sbom-observer/observer-cli",
-				},
-			},
-		})
-	}
-
-	out, err := os.Create(destination)
-	if err != nil {
-		return err
-	}
-
-	encoder := json.NewEncoder(out)
-	encoder.SetIndent("", "  ")
-	encoder.SetEscapeHTML(false)
-	err = encoder.Encode(merged)
-	out.Close()
-	if err != nil {
-		return err
-	}
-
-	log.Debugf("mergeSBOMs: wrote merged SBOM to %s", destination)
-
-	return nil
-}
-
-func mergeCycloneDX(boms []*cdx.BOM) (*cdx.BOM, error) {
-	// short-circuit if there's only one BOM
-	if len(boms) == 1 {
-		return boms[0], nil
-	}
-
-	merged := boms[0]
-
-	// TODO: we might want to move the root component for each BOM and create a new uber root
-	// move root component to components
-	//if merged.Components == nil {
-	//	merged.Components = &[]cdx.Component{}
-	//}
-	//*merged.Components = append(*merged.Components, *merged.Metadata.Component)
-
-	// bomRef -> merged bomRef map
-	components := map[string]string{}
-	dependencies := map[string]*cdx.Dependency{}
-
-	for _, component := range *merged.Components {
-		components[component.BOMRef] = component.BOMRef
-	}
-
-	for _, dependency := range *merged.Dependencies {
-		dependencies[dependency.Ref] = &dependency
-	}
-
-	for _, bom := range boms[1:] {
-		components[bom.Metadata.Component.BOMRef] = merged.Metadata.Component.BOMRef
-		for _, component := range *bom.Components {
-			_, found := components[component.BOMRef]
-
-			if !found {
-				components[component.BOMRef] = component.BOMRef
-				*merged.Components = append(*merged.Components, component)
-			}
-		}
-
-		for _, dependency := range *bom.Dependencies {
-			bomRef := components[dependency.Ref]
-			if bomRef == "" {
-				log.Error("failed to find component for dependency ref", "dependency", dependency.Ref)
-				continue
-			}
-
-			mergedDependency, found := dependencies[bomRef]
-			if !found {
-				dependency.Ref = bomRef
-				*merged.Dependencies = append(*merged.Dependencies, dependency)
-			} else {
-				mergedDependencies := types.SliceSet[string](*mergedDependency.Dependencies)
-				*mergedDependency.Dependencies = mergedDependencies.AddAll(*dependency.Dependencies)
-			}
-		}
-
-		// merge metadata tools
-		if merged.Metadata.Tools == nil {
-			merged.Metadata.Tools = &cdx.ToolsChoice{}
-		}
-
-		if merged.Metadata.Tools.Components == nil {
-			merged.Metadata.Tools.Components = &[]cdx.Component{}
-		}
-
-		if bom.Metadata.Tools != nil && bom.Metadata.Tools.Components != nil {
-			for _, tool := range *bom.Metadata.Tools.Components {
-				found := false
-				for _, existingTool := range *merged.Metadata.Tools.Components {
-					if tool.Name == existingTool.Name && tool.Version == existingTool.Version {
-						found = true
-						break
-					}
-				}
-				if !found {
-					*merged.Metadata.Tools.Components = append(*merged.Metadata.Tools.Components, tool)
-				}
-			}
-		}
-	}
-
-	return merged, nil
 }

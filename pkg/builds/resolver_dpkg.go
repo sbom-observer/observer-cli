@@ -1,4 +1,4 @@
-package buildops
+package builds
 
 import (
 	"cmp"

@@ -1,10 +1,9 @@
-package cmd
+package execx
 
 import (
 	"errors"
 	"fmt"
 	"os"
-	"sbom.observer/cli/pkg/execx"
 	"sbom.observer/cli/pkg/log"
 	"strings"
 )
@@ -23,9 +22,9 @@ func TrivyUpdateJavaDb() error {
 func Trivy(args ...string) (string, error) {
 	log.Debug(fmt.Sprintf("running 'trivy %s'", strings.Join(args, " ")))
 
-	output, err := execx.Exec("trivy", args...)
+	output, err := Exec("trivy", args...)
 	if err != nil {
-		if errors.Is(err, execx.ErrNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			log.Error("Trivy not found in $PATH")
 			log.Print("Download and install Trivy from https://github.com/aquasecurity/trivy/releases")
 			// TODO: add curl download instructions (use Github releases API?)

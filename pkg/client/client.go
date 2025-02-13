@@ -97,7 +97,24 @@ func NewObserverClient() *ObserverClient {
 	return NewObserverClientWithConfig(loadDefaultConfig())
 }
 
-func (c *ObserverClient) UploadFile(filename string) error {
+func (c *ObserverClient) UploadDirectory(directoryPath string) error {
+	return filepath.Walk(directoryPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			err = c.UploadFile(path)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+type FileSource func(w io.Writer) error
+
+func (c *ObserverClient) UploadSource(filename string, source FileSource) error {
 	log.Debug("uploading file", "filename", filename)
 
 	if c.config.Token == "" {
@@ -108,13 +125,10 @@ func (c *ObserverClient) UploadFile(filename string) error {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	file, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-
 	part, _ := writer.CreateFormFile("files", filename)
-	_, err = io.Copy(part, file) // blob -> reader
+
+	// collect contents
+	err := source(part)
 	if err != nil {
 		return err
 	}
@@ -147,17 +161,19 @@ func (c *ObserverClient) UploadFile(filename string) error {
 	return nil
 }
 
-func (c *ObserverClient) UploadDirectory(directoryPath string) error {
-	return filepath.Walk(directoryPath, func(path string, info os.FileInfo, err error) error {
+func (c *ObserverClient) UploadFile(filename string) error {
+	return c.UploadSource(filename, func(w io.Writer) error {
+		file, err := os.Open(filename)
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() {
-			err = c.UploadFile(path)
-			if err != nil {
-				return err
-			}
+		defer file.Close()
+
+		_, err = io.Copy(w, file)
+		if err != nil {
+			return err
 		}
+
 		return nil
 	})
 }

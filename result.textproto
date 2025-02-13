@@ -1,0 +1,682 @@
+start_time:  {
+  seconds:  1738778547
+  nanos:  857259000
+}
+end_time:  {
+  seconds:  1738778547
+  nanos:  863243000
+}
+status:  {
+  status:  SUCCEEDED
+}
+plugin_status:  {
+  name:  "go/binary"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "go/gomod"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "java/archive"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "java/gradlelockfile"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "java/gradleverificationmetadataxml"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "java/pomxml"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "javascript/packagejson"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "javascript/packagelockjson"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "javascript/pnpmlock"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "javascript/yarnlock"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "os/apk"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "os/cos"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "os/dpkg"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "os/flatpak"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "os/macapps"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "os/rpm"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "os/snap"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "python/Pipfilelock"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "python/pdmlock"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "python/poetrylock"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "python/requirements"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "python/wheelegg"
+  status:  {
+    status:  SUCCEEDED
+  }
+}
+plugin_status:  {
+  name:  "windows/dismpatch"
+  status:  {
+    status:  FAILED
+    failure_reason:  "only supported on Windows"
+  }
+}
+inventories:  {
+  name:  "alpine-baselayout"
+  version:  "3.6.5-r0"
+  source_code:  {
+    commit:  "66187892e05b03a41d08e9acabd19b7576a1c875"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/alpine-baselayout@3.6.5-r0?arch=x86_64&distro=3.20.2&origin=alpine-baselayout"
+    type:  "apk"
+    name:  "alpine-baselayout"
+    version:  "3.6.5-r0"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "alpine-baselayout"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "alpine-baselayout"
+    origin_name:  "alpine-baselayout"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Natanael Copa <ncopa@alpinelinux.org>"
+    architecture:  "x86_64"
+    license:  "GPL-2.0-only"
+  }
+}
+inventories:  {
+  name:  "alpine-baselayout-data"
+  version:  "3.6.5-r0"
+  source_code:  {
+    commit:  "66187892e05b03a41d08e9acabd19b7576a1c875"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/alpine-baselayout-data@3.6.5-r0?arch=x86_64&distro=3.20.2&origin=alpine-baselayout"
+    type:  "apk"
+    name:  "alpine-baselayout-data"
+    version:  "3.6.5-r0"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "alpine-baselayout"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "alpine-baselayout-data"
+    origin_name:  "alpine-baselayout"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Natanael Copa <ncopa@alpinelinux.org>"
+    architecture:  "x86_64"
+    license:  "GPL-2.0-only"
+  }
+}
+inventories:  {
+  name:  "alpine-keys"
+  version:  "2.4-r1"
+  source_code:  {
+    commit:  "aab68f8c9ab434a46710de8e12fb3206e2930a59"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/alpine-keys@2.4-r1?arch=x86_64&distro=3.20.2&origin=alpine-keys"
+    type:  "apk"
+    name:  "alpine-keys"
+    version:  "2.4-r1"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "alpine-keys"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "alpine-keys"
+    origin_name:  "alpine-keys"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Natanael Copa <ncopa@alpinelinux.org>"
+    architecture:  "x86_64"
+    license:  "MIT"
+  }
+}
+inventories:  {
+  name:  "apk-tools"
+  version:  "2.14.4-r0"
+  source_code:  {
+    commit:  "d435c805af8af4171438da3ec3429c094aac4c6e"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/apk-tools@2.14.4-r0?arch=x86_64&distro=3.20.2&origin=apk-tools"
+    type:  "apk"
+    name:  "apk-tools"
+    version:  "2.14.4-r0"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "apk-tools"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "apk-tools"
+    origin_name:  "apk-tools"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Natanael Copa <ncopa@alpinelinux.org>"
+    architecture:  "x86_64"
+    license:  "GPL-2.0-only"
+  }
+}
+inventories:  {
+  name:  "busybox"
+  version:  "1.36.1-r29"
+  source_code:  {
+    commit:  "1747c01fb96905f101c25609011589d28e01cbb8"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/busybox@1.36.1-r29?arch=x86_64&distro=3.20.2&origin=busybox"
+    type:  "apk"
+    name:  "busybox"
+    version:  "1.36.1-r29"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "busybox"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "busybox"
+    origin_name:  "busybox"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Sören Tempel <soeren+alpine@soeren-tempel.net>"
+    architecture:  "x86_64"
+    license:  "GPL-2.0-only"
+  }
+}
+inventories:  {
+  name:  "busybox-binsh"
+  version:  "1.36.1-r29"
+  source_code:  {
+    commit:  "1747c01fb96905f101c25609011589d28e01cbb8"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/busybox-binsh@1.36.1-r29?arch=x86_64&distro=3.20.2&origin=busybox"
+    type:  "apk"
+    name:  "busybox-binsh"
+    version:  "1.36.1-r29"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "busybox"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "busybox-binsh"
+    origin_name:  "busybox"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Sören Tempel <soeren+alpine@soeren-tempel.net>"
+    architecture:  "x86_64"
+    license:  "GPL-2.0-only"
+  }
+}
+inventories:  {
+  name:  "ca-certificates-bundle"
+  version:  "20240705-r0"
+  source_code:  {
+    commit:  "5d17fc7e5ae113319f201d781607ffe4bee95b61"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/ca-certificates-bundle@20240705-r0?arch=x86_64&distro=3.20.2&origin=ca-certificates"
+    type:  "apk"
+    name:  "ca-certificates-bundle"
+    version:  "20240705-r0"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "ca-certificates"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "ca-certificates-bundle"
+    origin_name:  "ca-certificates"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Natanael Copa <ncopa@alpinelinux.org>"
+    architecture:  "x86_64"
+    license:  "MPL-2.0 AND MIT"
+  }
+}
+inventories:  {
+  name:  "libcrypto3"
+  version:  "3.3.1-r3"
+  source_code:  {
+    commit:  "83c40f5aee556e975228ae40d879fbcd9f15c428"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/libcrypto3@3.3.1-r3?arch=x86_64&distro=3.20.2&origin=openssl"
+    type:  "apk"
+    name:  "libcrypto3"
+    version:  "3.3.1-r3"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "openssl"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "libcrypto3"
+    origin_name:  "openssl"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Natanael Copa <ncopa@alpinelinux.org>"
+    architecture:  "x86_64"
+    license:  "Apache-2.0"
+  }
+}
+inventories:  {
+  name:  "libssl3"
+  version:  "3.3.1-r3"
+  source_code:  {
+    commit:  "83c40f5aee556e975228ae40d879fbcd9f15c428"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/libssl3@3.3.1-r3?arch=x86_64&distro=3.20.2&origin=openssl"
+    type:  "apk"
+    name:  "libssl3"
+    version:  "3.3.1-r3"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "openssl"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "libssl3"
+    origin_name:  "openssl"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Natanael Copa <ncopa@alpinelinux.org>"
+    architecture:  "x86_64"
+    license:  "Apache-2.0"
+  }
+}
+inventories:  {
+  name:  "musl"
+  version:  "1.2.5-r0"
+  source_code:  {
+    commit:  "4fe5bdbe47b100daa6380f81c4c8ea3f99b61362"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/musl@1.2.5-r0?arch=x86_64&distro=3.20.2&origin=musl"
+    type:  "apk"
+    name:  "musl"
+    version:  "1.2.5-r0"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "musl"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "musl"
+    origin_name:  "musl"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Natanael Copa <ncopa@alpinelinux.org>"
+    architecture:  "x86_64"
+    license:  "MIT"
+  }
+}
+inventories:  {
+  name:  "musl-utils"
+  version:  "1.2.5-r0"
+  source_code:  {
+    commit:  "4fe5bdbe47b100daa6380f81c4c8ea3f99b61362"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/musl-utils@1.2.5-r0?arch=x86_64&distro=3.20.2&origin=musl"
+    type:  "apk"
+    name:  "musl-utils"
+    version:  "1.2.5-r0"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "musl"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "musl-utils"
+    origin_name:  "musl"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Natanael Copa <ncopa@alpinelinux.org>"
+    architecture:  "x86_64"
+    license:  "MIT AND BSD-2-Clause AND GPL-2.0-or-later"
+  }
+}
+inventories:  {
+  name:  "scanelf"
+  version:  "1.3.7-r2"
+  source_code:  {
+    commit:  "e65a4f2d0470e70d862ef2b5c412ecf2cb9ad0a6"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/scanelf@1.3.7-r2?arch=x86_64&distro=3.20.2&origin=pax-utils"
+    type:  "apk"
+    name:  "scanelf"
+    version:  "1.3.7-r2"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "pax-utils"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "scanelf"
+    origin_name:  "pax-utils"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Natanael Copa <ncopa@alpinelinux.org>"
+    architecture:  "x86_64"
+    license:  "GPL-2.0-only"
+  }
+}
+inventories:  {
+  name:  "ssl_client"
+  version:  "1.36.1-r29"
+  source_code:  {
+    commit:  "1747c01fb96905f101c25609011589d28e01cbb8"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/ssl_client@1.36.1-r29?arch=x86_64&distro=3.20.2&origin=busybox"
+    type:  "apk"
+    name:  "ssl_client"
+    version:  "1.36.1-r29"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "busybox"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "ssl_client"
+    origin_name:  "busybox"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Sören Tempel <soeren+alpine@soeren-tempel.net>"
+    architecture:  "x86_64"
+    license:  "GPL-2.0-only"
+  }
+}
+inventories:  {
+  name:  "zlib"
+  version:  "1.3.1-r1"
+  source_code:  {
+    commit:  "fad2d175bd85eb4c5566765375392a7394dfbcf2"
+  }
+  purl:  {
+    purl:  "pkg:apk/alpine/zlib@1.3.1-r1?arch=x86_64&distro=3.20.2&origin=zlib"
+    type:  "apk"
+    name:  "zlib"
+    version:  "1.3.1-r1"
+    namespace:  "alpine"
+    qualifiers:  {
+      key:  "arch"
+      value:  "x86_64"
+    }
+    qualifiers:  {
+      key:  "distro"
+      value:  "3.20.2"
+    }
+    qualifiers:  {
+      key:  "origin"
+      value:  "zlib"
+    }
+  }
+  ecosystem:  "Alpine:v3.20"
+  locations:  "lib/apk/db/installed"
+  extractor:  "os/apk"
+  apk_metadata:  {
+    package_name:  "zlib"
+    origin_name:  "zlib"
+    os_id:  "alpine"
+    os_version_id:  "3.20.2"
+    maintainer:  "Natanael Copa <ncopa@alpinelinux.org>"
+    architecture:  "x86_64"
+    license:  "Zlib"
+  }
+}

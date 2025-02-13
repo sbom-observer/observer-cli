@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"sbom.observer/cli/pkg/client"
+	"sbom.observer/cli/pkg/execx"
 	"sbom.observer/cli/pkg/log"
 	"time"
 )
@@ -58,7 +59,7 @@ func ImageCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// update Trivy Java DB
-	err := TrivyUpdateJavaDb()
+	err := execx.TrivyUpdateJavaDb()
 	if err != nil {
 		log.Debug("failed to update Trivy Java DB ", "err", err)
 	}

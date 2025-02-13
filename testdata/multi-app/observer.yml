@@ -4,3 +4,4 @@ supplier:
 component:
   name: custom-multi-app
   group: custom-multi-app-group
+#  version: 9.9.9

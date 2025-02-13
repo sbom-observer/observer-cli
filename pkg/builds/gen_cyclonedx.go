@@ -1,15 +1,12 @@
-package cmd
+package builds
 
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	cdx "github.com/CycloneDX/cyclonedx-go"
 	"io"
 	"os"
-	"path/filepath"
-	"sbom.observer/cli/pkg/buildops"
 	"sbom.observer/cli/pkg/ids"
 	"sbom.observer/cli/pkg/log"
 	"sbom.observer/cli/pkg/types"
@@ -19,54 +16,7 @@ import (
 // https://json-schema.org/understanding-json-schema/reference/string.html#dates-and-times
 const JsonSchemaDateTimeFormat = "2006-01-02T15:04:05+00:00"
 
-type buildopsScanner struct{}
-
-func (s *buildopsScanner) Id() string {
-	return "buildops"
-}
-
-func (s *buildopsScanner) Priority() int {
-	return 1000
-}
-
-func (s *buildopsScanner) Scan(target *scanTarget, output string) error {
-	log := log.Logger.WithPrefix("buildops")
-
-	for filename, ecosystem := range target.files {
-		if filename == "build-observations.out" || filename == "build-observations.out.txt" {
-			log.Debug("found build observations file config file", "filename", filename, "ecosystem", ecosystem)
-
-			log.Debugf("parsing build observations file %s", filename)
-			opens, executions, err := buildops.ParseFile(filepath.Join(target.path, filename))
-			if err != nil {
-				return fmt.Errorf("failed to parse build observations file: %w", err)
-			}
-
-			log.Debugf("filtering dependencies from %d observed build operations", len(opens)+len(executions))
-			depOpens, depExecutions := buildops.DependencyObservations(opens, executions)
-
-			dependencies, err := buildops.ResolveDependencies(depOpens, depExecutions)
-			if err != nil {
-				return fmt.Errorf("failed to parse build observations file: %w", err)
-			}
-
-			log.Debugf("resolved %d unique code dependencies", len(dependencies.Code))
-			log.Debugf("resolved %d unique tool dependencies", len(dependencies.Tools))
-			log.Debugf("resolved %d unique transitive dependencies", len(dependencies.Transitive))
-
-			err = s.generateCycloneDX(dependencies, target.config, output)
-			if err != nil {
-				return fmt.Errorf("failed to generate CycloneDX BOM: %w", err)
-			}
-
-			target.results = append(target.results, output)
-		}
-	}
-
-	return nil
-}
-
-func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, config ScanConfig, output string) error {
+func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.BOM, error) {
 	createdAt := time.Now()
 
 	bom := cdx.NewBOM()
@@ -78,7 +28,7 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 		Timestamp: createdAt.Format(JsonSchemaDateTimeFormat),
 		Tools: &cdx.ToolsChoice{
 			Components: &[]cdx.Component{
-				cdx.Component{
+				{
 					Type:        cdx.ComponentTypeApplication,
 					Name:        "observer",
 					Description: "sbom.observer (cli)",
@@ -272,27 +222,10 @@ func (s *buildopsScanner) generateCycloneDX(deps *buildops.BuildDependencies, co
 	bom.Components = &components
 	bom.Dependencies = &ds
 
-	// marshal bom as json and write to file output
-	file, err := os.Create(output)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	log.Logger.WithPrefix("buildops").Debug("writing CycloneDX BOM to file", "output", output)
-
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ")
-	encoder.SetEscapeHTML(false)
-	err = encoder.Encode(bom)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return bom, nil
 }
 
-func purlForPackage(dep buildops.Package) string {
+func purlForPackage(dep Package) string {
 	var distro string
 
 	switch dep.OSFamily.Name {

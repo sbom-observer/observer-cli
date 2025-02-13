@@ -69,7 +69,7 @@ func KubernetesCommand(cmd *cobra.Command, args []string) {
 		kubectlArgs = append(args, "--kubeconfig", value)
 	}
 
-	output, extErr := Kubectl(kubectlArgs...)
+	output, extErr := execx.Kubectl(kubectlArgs...)
 	if extErr != nil {
 		var extCmdErr *execx.ExternalCommandError
 		if errors.As(extErr, &extCmdErr) {
@@ -183,7 +183,7 @@ func createImageSboms(engine string, images map[string]k8s.Image, tempDir string
 	var sboms []string
 
 	// update Trivy Java DB
-	err := TrivyUpdateJavaDb()
+	err := execx.TrivyUpdateJavaDb()
 	if err != nil {
 		return nil, err
 	}
@@ -222,22 +222,6 @@ NextImage:
 	return sboms, nil
 }
 
-func Kubectl(args ...string) (string, error) {
-	log.Debug(fmt.Sprintf("kubectl 'trivy %s'", strings.Join(args, " ")))
-
-	output, err := execx.Exec("kubectl", args...)
-	if err != nil {
-		if errors.Is(err, execx.ErrNotFound) {
-			log.Error("kubectl not found in $PATH")
-			log.Print("Download and install kubectl from https://kubernetes.io/docs/tasks/tools/")
-			// TODO: add curl download instructions
-			os.Exit(1)
-		}
-	}
-
-	return output, err
-}
-
 func CreateImageSbom(engine string, image string, output string) error {
 	switch engine {
 	case "trivy":
@@ -251,7 +235,7 @@ func CreateImageSbom(engine string, image string, output string) error {
 }
 
 func CreateImageSbomTrivy(image string, output string) error {
-	output, err := Trivy("image", "--skip-db-update", "--skip-java-db-update", "--format", "cyclonedx", "--output", output, image)
+	output, err := execx.Trivy("image", "--skip-db-update", "--skip-java-db-update", "--format", "cyclonedx", "--output", output, image)
 	if err != nil {
 		var extCmdErr *execx.ExternalCommandError
 		if errors.As(err, &extCmdErr) {
@@ -271,7 +255,7 @@ func CreateImageSbomTrivy(image string, output string) error {
 
 func CreateImageSbomSyft(image string, output string) error {
 	//syft -o cyclonedx-json=/tmp/syft.cdx.json  postgres:latest
-	output, err := Syft("-o", "cyclonedx-json="+output, image)
+	output, err := execx.Syft("-o", "cyclonedx-json="+output, image)
 	if err != nil {
 		var extCmdErr *execx.ExternalCommandError
 		if errors.As(err, &extCmdErr) {

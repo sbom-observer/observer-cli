@@ -20,13 +20,16 @@
 
 # Go workspace file
 go.work
+go.work.sum
 
 /TODO.txt
 /scratch/
-observer
+observer*
 dist/
 .vagrant
 /build-observer
 /scratches/
 /observer-linux
 .DS_Store
+/observer.yml
+fanal
