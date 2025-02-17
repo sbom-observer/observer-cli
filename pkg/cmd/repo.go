@@ -8,10 +8,13 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sbom.observer/cli/pkg/cdxutil"
-	"sbom.observer/cli/pkg/scanner"
+	"sort"
+	"strings"
 	"text/template"
 	"time"
+
+	"sbom.observer/cli/pkg/cdxutil"
+	"sbom.observer/cli/pkg/scanner"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
 	"github.com/spf13/cobra"
@@ -39,12 +42,14 @@ func init() {
 	repoCmd.Flags().Uint("depth", 1, "Recursively scan subdirectories down to max tree depth (e.g. monorepos)")
 
 	// output
-	repoCmd.Flags().StringP("output", "o", "", "Output directory or file (merge) for the results (default: stdout)")
-	repoCmd.Flags().BoolP("merge", "m", false, "Merge the results into a single BOM")
+	repoCmd.Flags().StringP("output", "o", "", "Output directory for the results (default: stdout)")
+	repoCmd.Flags().StringP("merge", "m", "", "Merge (filename) the results into a single BOM")
 	//repoCmd.Flags().Bool("super", false, "Merge the results with a super BOM")
 }
 
 func RunRepoCommand(cmd *cobra.Command, args []string) {
+	var err error
+
 	flagUpload, _ := cmd.Flags().GetBool("upload")
 	flagDebug, _ := cmd.Flags().GetBool("debug")
 	flagSilent, _ := cmd.Flags().GetBool("silent")
@@ -52,21 +57,35 @@ func RunRepoCommand(cmd *cobra.Command, args []string) {
 	flagDepth, _ := cmd.Flags().GetUint("depth")
 
 	flagOutput, _ := cmd.Flags().GetString("output")
-	flagMerge, _ := cmd.Flags().GetBool("merge")
+	flagMerge, _ := cmd.Flags().GetString("merge")
 	// TODO: load config from args[0]
 
-	if len(args) != 1 {
+	if len(args) < 1 {
 		log.Fatal("the path to a source repository is required as an argument")
 	}
 
-	targets, err := scanner.FindScanTargets(args[0], flagDepth)
-	if err != nil {
-		log.Fatal("failed to find scan targets", "err", err)
-	}
+	// find targets
+	targets := map[string]*scanner.ScanTarget{}
+	for _, arg := range args {
+		ts, err := scanner.FindScanTargets(arg, flagDepth)
+		if err != nil {
+			log.Fatal("failed to find scan targets", "err", err)
+		}
 
-	if len(targets) == 0 {
-		log.Infof("No targets found in %s", args[0])
-		os.Exit(0)
+		if len(ts) == 0 {
+			log.Infof("No targets found in %s", args[0])
+			os.Exit(0)
+		}
+
+		for path, target := range ts {
+			if existingTarget, ok := targets[path]; ok {
+				for file, ecosystem := range existingTarget.Files {
+					target.Files[file] = ecosystem
+				}
+			}
+
+			targets[path] = target
+		}
 	}
 
 	// TODO: remove
@@ -81,7 +100,7 @@ func RunRepoCommand(cmd *cobra.Command, args []string) {
 
 		for _, scanner := range scanner.ScannersForTarget(*target) {
 			log.Debug("running scanner", "id", scanner.Id())
-			err = scanner.Scan(target)
+			err := scanner.Scan(target)
 			if err != nil {
 				log.Fatal("failed to create SBOM for repository", "path", target.Path, "err", err)
 			}
@@ -105,36 +124,94 @@ func RunRepoCommand(cmd *cobra.Command, args []string) {
 
 	// TODO: implement --merge flag (and --merge-with-ref or --super)
 
-	if flagMerge {
-		if len(targets) != 1 {
-			log.Fatal("merge flag can only be used with a single target")
+	// merge to single file
+	if flagMerge != "" {
+		if isDirectory(flagMerge) {
+			log.Fatalf("output destination %s is a directory. Did you mean --output?", flagMerge)
 		}
+
+		// TODO: remove
+		// if len(targets) != 1 {
+		// 	log.Fatal("merge flag can only be used with a single target")
+		// }
+
+		// var merged *cdx.BOM
+		// for _, target := range targets {
+		// 	merged = target.Merged
+		// }
+
+		var rootPath string
+		var targetsToMerge []*scanner.ScanTarget
+
+		for _, target := range targets {
+			if rootPath == "" || len(target.Path) < len(rootPath) {
+				rootPath = target.Path
+			} else if !strings.HasPrefix(target.Path, rootPath) {
+				log.Fatal("targets are not part of the same root path", "root", rootPath, "target", target.Path)
+			}
+			targetsToMerge = append(targetsToMerge, target)
+		}
+
+		// sort targets by path length
+		sort.Slice(targetsToMerge, func(i, j int) bool {
+			return len(targetsToMerge[i].Path) < len(targetsToMerge[j].Path)
+		})
+
+		var boms []*cdx.BOM
+		for _, target := range targetsToMerge {
+			boms = append(boms, target.Merged)
+		}
+
+		// TODO: replace with an additive merge
+		merged, err := cdxutil.DestructiveMergeSBOMs(targetsToMerge[0].Config, boms)
+		if err != nil {
+			log.Fatal("failed to merge SBOMs for config", "config", targetsToMerge[0].Merged.Metadata.Component.Name, "err", err)
+		}
+
+		log.Debugf("merged %d BOMs to %s %s", len(boms), merged.Metadata.Component.Name, merged.Metadata.Component.Version)
+
+		outputFilename := flagMerge
+
+		log.Debugf("writing SBOM to %s", outputFilename)
+
+		out, err := os.Create(outputFilename)
+		if err != nil {
+			log.Fatal("failed to create output file", "filename", outputFilename, "err", err)
+		}
+
+		// use cdx provided encoder
+		encoder := cdx.NewBOMEncoder(out, cdx.BOMFileFormatJSON)
+		encoder.SetPretty(true)
+		err = encoder.Encode(merged)
+		if err != nil {
+			log.Fatal("failed to write output file", "filename", outputFilename, "err", err)
+		}
+
+		_ = out.Close()
+
 	}
 
 	// write to output
 	if flagOutput != "" {
-		if !isDirectory(flagOutput) && !flagMerge {
+		if !isDirectory(flagOutput) {
 			log.Fatalf("output destination %s is not a directory. Did you mean --merge?", flagOutput)
 		}
 
 		for _, target := range targets {
-			outputFilename := flagOutput
 
-			if !flagMerge {
-				outputTemplate := "sbom-{{.Name}}-{{.Module}}-{{.Timestamp}}.cdx.json"
-				if target.Config.OutputTemplate != "" {
-					outputTemplate = target.Config.OutputTemplate
-				}
+			outputTemplate := "sbom-{{.Name}}-{{.Module}}-{{.Timestamp}}.cdx.json"
+			if target.Config.OutputTemplate != "" {
+				outputTemplate = target.Config.OutputTemplate
+			}
 
-				outputFilename, err = generateFilename(outputTemplate, "", target.Merged.Metadata.Component)
-				if err != nil {
-					log.Fatal("failed to generate output filename", "err", err)
-				}
+			outputFilename, err := generateFilename(outputTemplate, "", target.Merged.Metadata.Component)
+			if err != nil {
+				log.Fatal("failed to generate output filename", "err", err)
+			}
 
-				outputFilename, err = filepath.Abs(filepath.Join(flagOutput, outputFilename))
-				if err != nil {
-					log.Fatal("failed to get absolute path for output filename", "err", err)
-				}
+			outputFilename, err = filepath.Abs(filepath.Join(flagOutput, outputFilename))
+			if err != nil {
+				log.Fatal("failed to get absolute path for output filename", "err", err)
 			}
 
 			log.Debugf("writing SBOM to %s", outputFilename)
@@ -157,6 +234,7 @@ func RunRepoCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// upload
+	// TODO: handle upload merged
 	if flagUpload {
 		progress := log.NewProgressBar(int64(len(targets)), "Uploading BOMs", flagSilent)
 
@@ -192,7 +270,7 @@ func RunRepoCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// output to stdout
-	if flagOutput == "" {
+	if flagOutput == "" && flagMerge == "" {
 		for _, target := range targets {
 			for _, result := range target.Results {
 				enc := json.NewEncoder(os.Stdout)
