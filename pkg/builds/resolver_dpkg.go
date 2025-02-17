@@ -3,13 +3,14 @@ package builds
 import (
 	"cmp"
 	"fmt"
-	"golang.org/x/exp/maps"
 	"path/filepath"
+	"slices"
+	"strings"
+
+	"golang.org/x/exp/maps"
 	"sbom.observer/cli/pkg/log"
 	"sbom.observer/cli/pkg/ospkgs"
 	"sbom.observer/cli/pkg/ospkgs/dpkg"
-	"slices"
-	"strings"
 )
 
 // TODO: move package
@@ -28,19 +29,7 @@ func resolveDpkgDependencies(osFamily ospkgs.OSFamily, opens []string, execution
 
 	// parse filename form lines and deduplicate (more than one compiler might open the same file)
 	includeFiles := map[string]struct{}{}
-	for i, row := range opens {
-		// open    make    /lib/x86_64-linux-gnu/libc.so.6
-		fields := strings.Fields(row)
-		if len(fields) != 3 {
-			return nil, fmt.Errorf("parse error: %d %s", i, row)
-		}
-
-		fileName := fields[2]
-
-		if fileName == "" {
-			return nil, fmt.Errorf("parse error: %d missing filename in line '%s'", i, row)
-		}
-
+	for _, fileName := range opens {
 		includeFiles[fileName] = struct{}{}
 	}
 
@@ -93,19 +82,7 @@ func resolveDpkgDependencies(osFamily ospkgs.OSFamily, opens []string, execution
 		}
 	}
 
-	for i, row := range executions {
-		// TODO: move this parsing up
-		fields := strings.Fields(row)
-		if len(fields) != 2 {
-			return nil, fmt.Errorf("parse error: %d %s", i, row)
-		}
-
-		fileName := fields[1]
-
-		if fileName == "" {
-			return nil, fmt.Errorf("parse error: %d %s", i, row)
-		}
-
+	for _, fileName := range executions {
 		// resolve symlinks (/usr/bin/cc ->/etc/alternatives/cc -> /usr/bin/gcc -> /usr/bin/gcc-12 -> /usr/bin/x86_64-linux-gnu-gcc-12)
 		fileName, err = filepath.EvalSymlinks(fileName)
 		if err != nil {

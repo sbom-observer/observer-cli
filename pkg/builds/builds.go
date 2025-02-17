@@ -2,13 +2,15 @@ package builds
 
 import (
 	"fmt"
-	"github.com/sbom-observer/build-observer/pkg/types"
-	"golang.org/x/exp/maps"
 	"os"
-	"sbom.observer/cli/pkg/licenses"
-	"sbom.observer/cli/pkg/ospkgs"
 	"sort"
 	"strings"
+
+	"github.com/sbom-observer/build-observer/pkg/types"
+	"golang.org/x/exp/maps"
+	"sbom.observer/cli/pkg/licenses"
+	"sbom.observer/cli/pkg/log"
+	"sbom.observer/cli/pkg/ospkgs"
 )
 
 // TODO: replace this with pkg/os/Package
@@ -110,6 +112,8 @@ func ResolveDependencies(observations BuildObservations) (*BuildDependencies, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to detect OS family: %w", err)
 	}
+
+	log.Debugf("detected os family: %s %s", osFamily.Name, osFamily.Release)
 
 	switch packageManager {
 	case "dpkg":

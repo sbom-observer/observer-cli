@@ -24,7 +24,7 @@ func (s *BuildObservationsScanner) Scan(target *ScanTarget) error {
 	log := log.Logger.WithPrefix("build-observations")
 
 	for filename, ecosystem := range target.Files {
-		if filename == "build-observations.out" || filename == "build-observations.out.txt" {
+		if filename == "build-observations.json" {
 			log.Debug("found build observations file config file", "filename", filename, "ecosystem", ecosystem)
 
 			f, err := os.Open(filepath.Join(target.Path, filename))

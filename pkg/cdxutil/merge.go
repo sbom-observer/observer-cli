@@ -1,10 +1,11 @@
 package cdxutil
 
 import (
+	"slices"
+
 	cdx "github.com/CycloneDX/cyclonedx-go"
 	"sbom.observer/cli/pkg/log"
 	"sbom.observer/cli/pkg/types"
-	"slices"
 )
 
 // DestructiveMergeSBOMs merges multiple SBOMs into a single SBOM, inputs may be modified and should be considered invalid after this call
@@ -13,6 +14,17 @@ func DestructiveMergeSBOMs(config types.ScanConfig, results []*cdx.BOM) (*cdx.BO
 	merged, err := mergeCycloneDX(results)
 	if err != nil {
 		return nil, err
+	}
+
+	// TODO: what do we do here?
+	if merged == nil {
+		merged = cdx.NewBOM()
+		merged.Metadata = &cdx.Metadata{
+			Component: &cdx.Component{
+				Type: cdx.ComponentTypeApplication,
+			},
+		}
+		merged.Components = &[]cdx.Component{}
 	}
 
 	// set metadata from config
@@ -143,6 +155,10 @@ func DestructiveMergeSBOMs(config types.ScanConfig, results []*cdx.BOM) (*cdx.BO
 
 // mergeCycloneDX is very simplistic in that it only merges components and dependencies
 func mergeCycloneDX(boms []*cdx.BOM) (*cdx.BOM, error) {
+	if len(boms) == 0 {
+		return nil, nil
+	}
+
 	// short-circuit if there's only one BOM
 	if len(boms) == 1 {
 		return boms[0], nil
