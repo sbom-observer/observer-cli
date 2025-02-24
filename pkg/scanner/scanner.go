@@ -1,13 +1,14 @@
 package scanner
 
 import (
-	"github.com/google/osv-scalibr/extractor/filesystem"
-	"github.com/google/osv-scalibr/extractor/filesystem/simplefileapi"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/google/osv-scalibr/extractor/filesystem"
+	"github.com/google/osv-scalibr/extractor/filesystem/simplefileapi"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
 	"golang.org/x/exp/maps"
@@ -29,6 +30,7 @@ const EcosystemConan Ecosystem = "conan"
 const EcosystemElixir Ecosystem = "elixir"
 const EcosystemDart Ecosystem = "dart"
 const EcosystemSwift Ecosystem = "swift"
+const EcosystemCrystal Ecosystem = "crystal"
 const EcosystemBuildObserver Ecosystem = "build-observer"
 const EcosystemObserver Ecosystem = "observer"
 const EcosystemUnknownBinary Ecosystem = "binary"
@@ -145,6 +147,8 @@ func IdentifyEcosystem(path string, fileName string) Ecosystem {
 		return EcosystemJava
 	case "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "Pipfile", "Pipfile.lock", "poetry.lock":
 		return EcosystemPython
+	case "shard.lock", "shard.yml":
+		return EcosystemCrystal
 	case "observer.yml", "observer.yaml":
 		return EcosystemObserver
 	case "build-observations.json":
@@ -226,6 +230,11 @@ func scannersForEcosystem(ecosystem Ecosystem) []RepoScanner {
 		}
 	case EcosystemGo:
 		return []RepoScanner{&ScalibrRepoScanner{}}
+	case EcosystemCrystal:
+		return []RepoScanner{
+			&CrystalShardScanner{},
+			&ScalibrRepoScanner{},
+		}
 	case EcosystemUnknownBinary:
 		return []RepoScanner{
 			&BinaryNameScanner{},

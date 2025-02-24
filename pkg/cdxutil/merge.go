@@ -128,10 +128,9 @@ func DestructiveMergeSBOMs(config types.ScanConfig, results []*cdx.BOM) (*cdx.BO
 			merged.Metadata.Tools.Components = &[]cdx.Component{}
 		}
 		*merged.Metadata.Tools.Components = append(*merged.Metadata.Tools.Components, cdx.Component{
-			Type:        cdx.ComponentTypeApplication,
-			Name:        "observer",
-			Description: "sbom.observer SBOM generator",
-			//Publisher:   "Bitfront AB",
+			Type: cdx.ComponentTypeApplication,
+			Name: "observer",
+			// Description: "sbom.observer SBOM generator",
 			Publisher: "https://sbom.observer",
 			Version:   types.Version,
 			ExternalReferences: &[]cdx.ExternalReference{

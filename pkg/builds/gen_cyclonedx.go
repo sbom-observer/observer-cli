@@ -31,8 +31,7 @@ func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.B
 				{
 					Type:        cdx.ComponentTypeApplication,
 					Name:        "observer",
-					Description: "sbom.observer (cli)",
-					Publisher:   "Bitfront AB",
+					Publisher:   "https://sbom.observer",
 					Version:     types.Version,
 					ExternalReferences: &[]cdx.ExternalReference{
 						{

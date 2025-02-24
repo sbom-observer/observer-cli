@@ -43,7 +43,7 @@ func DependencyObservations(observations BuildObservations) BuildObservations {
 	calls := map[string]struct{}{}
 
 	for _, open := range observations.FilesOpened {
-		if isExternalInclude(open) {
+		if isExternalDependency(open) {
 			includes[open] = struct{}{}
 		}
 	}
@@ -69,9 +69,9 @@ func DependencyObservations(observations BuildObservations) BuildObservations {
 	return result
 }
 
-func isExternalInclude(open string) bool {
-	// TODO: should probable include everything in /usr/include and /usr/local/include as well
-	return strings.Contains(open, "/usr") && strings.HasSuffix(open, ".h")
+func isExternalDependency(open string) bool {
+	return (strings.Contains(open, "/usr") && strings.HasSuffix(open, ".h")) ||
+		(strings.Contains(open, "/usr") && strings.HasSuffix(open, ".pc"))
 }
 
 func isCompilerCall(exec string) bool {

@@ -3,6 +3,10 @@ package scanner
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"slices"
+	"time"
+
 	"github.com/CycloneDX/cyclonedx-go"
 	scalibr "github.com/google/osv-scalibr"
 	"github.com/google/osv-scalibr/binary/platform"
@@ -18,10 +22,8 @@ import (
 	"github.com/google/osv-scalibr/plugin"
 	"github.com/google/osv-scalibr/purl"
 	"github.com/google/uuid"
-	"path/filepath"
 	"sbom.observer/cli/pkg/log"
-	"slices"
-	"time"
+	localextractors "sbom.observer/cli/pkg/scanner/scalibr"
 )
 
 type ScalibrRepoScanner struct {
@@ -45,6 +47,8 @@ func (s *ScalibrRepoScanner) Scan(target *ScanTarget) error {
 	}
 
 	extractors := filesystemextractors.Default // TODO: curate
+	extractors = append(extractors, localextractors.CrystalShardLockExtractor{})
+
 	var standaloneExtractors []standalone.Extractor = nil
 	var detectors []detector.Detector = nil
 	extractors, standaloneExtractors, detectors = filterByCapabilities(extractors, standaloneExtractors, detectors, capabilities)
@@ -80,7 +84,7 @@ func (s *ScalibrRepoScanner) Scan(target *ScanTarget) error {
 		return fmt.Errorf("scan wasn't successful: %s", scalibrResult.Status.FailureReason)
 	}
 
-	bom := scalibrToCycloneDX(scalibrResult, s.includeDevDependencies)
+	bom := cyclonedx.NewBOM()
 
 	// this metadata will probably be overwritten by the next scanner or merge process
 	bom.Metadata = &cyclonedx.Metadata{
@@ -105,6 +109,9 @@ func (s *ScalibrRepoScanner) Scan(target *ScanTarget) error {
 		//	},
 		//},
 	}
+
+	// add inventory to bom
+	scalibrToCycloneDX(bom, scalibrResult, s.includeDevDependencies)
 
 	target.Results = append(target.Results, bom)
 
@@ -144,9 +151,7 @@ func filterByCapabilities(
 	return ff, sf, df
 }
 
-func scalibrToCycloneDX(r *scalibr.ScanResult, includeDevDependencies bool) *cyclonedx.BOM {
-	bom := cyclonedx.NewBOM()
-
+func scalibrToCycloneDX(bom *cyclonedx.BOM, r *scalibr.ScanResult, includeDevDependencies bool) {
 	comps := make([]cyclonedx.Component, 0, len(r.Inventories))
 
 NextInventory:
@@ -193,7 +198,18 @@ NextInventory:
 	}
 	bom.Components = &comps
 
-	return bom
+	var allRefs []string
+	for _, comp := range comps {
+		allRefs = append(allRefs, comp.BOMRef)
+	}
+
+	// add a top level dependency section
+	bom.Dependencies = &[]cyclonedx.Dependency{
+		{
+			Ref:          bom.Metadata.Component.BOMRef,
+			Dependencies: &allRefs,
+		},
+	}
 }
 
 func toPURL(i *extractor.Inventory) *purl.PackageURL {
