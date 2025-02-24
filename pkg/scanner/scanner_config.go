@@ -1,10 +1,10 @@
 package scanner
 
 import (
-	"gopkg.in/yaml.v3"
-	"os"
 	"path/filepath"
+
 	"sbom.observer/cli/pkg/log"
+	"sbom.observer/cli/pkg/types"
 )
 
 type ConfigRepoScanner struct{}
@@ -18,15 +18,11 @@ func (s *ConfigRepoScanner) Priority() int {
 }
 
 func (s *ConfigRepoScanner) Scan(target *ScanTarget) error {
-	for filename, _ := range target.Files {
+	for filename := range target.Files {
 		if filename == "observer.yml" || filename == "observer.yaml" {
 			log.Info("parsing observer config file", "filename", filename)
-			bs, err := os.ReadFile(filepath.Join(target.Path, filename))
-			if err != nil {
-				return err
-			}
 
-			err = yaml.Unmarshal(bs, &target.Config)
+			err := types.LoadConfig(&target.Config, filepath.Join(target.Path, filename))
 			if err != nil {
 				return err
 			}

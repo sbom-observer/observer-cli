@@ -1,5 +1,11 @@
 package types
 
+import (
+	"os"
+
+	"gopkg.in/yaml.v3"
+)
+
 type ScanConfig struct {
 	OutputTemplate string                         `yaml:"output,omitempty"`
 	Component      ScanConfigComponent            `yaml:"component,omitempty"`
@@ -27,4 +33,17 @@ type ScanConfigComponent struct {
 	Version     string `yaml:"version,omitempty"`
 	Description string `yaml:"description,omitempty"`
 	License     string `yaml:"license,omitempty"`
+}
+
+func LoadConfig(config *ScanConfig,filename string) error {
+	bs, err := os.ReadFile(filename)
+	if err != nil {
+		return  err
+	}
+
+	err = yaml.Unmarshal(bs, &config)
+	if err != nil {
+		return  err
+	}
+	return nil
 }

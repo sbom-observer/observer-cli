@@ -8,9 +8,10 @@ import (
 	"strings"
 	"syscall"
 
+	cdx "github.com/CycloneDX/cyclonedx-go"
 	"github.com/sbom-observer/build-observer/pkg/traceopens"
-	buildtypes "github.com/sbom-observer/build-observer/pkg/types"
 	"github.com/spf13/cobra"
+	"sbom.observer/cli/pkg/builds"
 	"sbom.observer/cli/pkg/log"
 	"sbom.observer/cli/pkg/types"
 )
@@ -19,8 +20,8 @@ import (
 var buildCmd = &cobra.Command{
 	Use:     "build",
 	Short:   "Observe a build process and optionally generate a CycloneDX SBOM",
-	Long:    `TBD`,
-	Example: `sudo observer build -- make`,
+	Long:    "Observe and record files opened and executed during a build process and optionally generate a CycloneDX SBOM",
+	Example: `sudo observer build -u ci -- make`,
 	Run:     RunBuildCommand,
 	Args:    cobra.MinimumNArgs(1),
 }
@@ -28,9 +29,11 @@ var buildCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(buildCmd)
 
-	buildCmd.Flags().StringP("output", "o", "build-observations.json", "Output filename")
-	buildCmd.Flags().StringSliceP("exclude", "e", []string{".", "..", "*.so", "*.so.6", "*.so.2", "*.a", "/etc/ld.so.cache"}, "Exclude files from output")
+	buildCmd.Flags().StringP("output", "o", "build-observations.json", "Output filename for build observations")
+	buildCmd.Flags().StringP("sbom", "b", "", "Output filename for CycloneDX SBOM")
 	buildCmd.Flags().StringP("user", "u", "", "Run command as user")
+	buildCmd.Flags().StringP("config", "c", "", "Config file (i.e. observer.yaml)")
+	buildCmd.Flags().StringSliceP("exclude", "e", []string{".", "..", "*.so", "*.so.6", "*.so.2", "*.a", "/etc/ld.so.cache"}, "Exclude files from output")
 }
 
 func RunBuildCommand(cmd *cobra.Command, args []string) {
@@ -59,7 +62,7 @@ func RunBuildCommand(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	buildObservations := buildtypes.BuildObservations{
+	buildObservations := builds.BuildObservations{
 		Start:            result.Start,
 		Stop:             result.Stop,
 		FilesOpened:      result.FilesOpened,
@@ -71,6 +74,18 @@ func RunBuildCommand(cmd *cobra.Command, args []string) {
 	sort.Strings(buildObservations.FilesOpened)
 	sort.Strings(buildObservations.FilesExecuted)
 
+	// load config file if provided
+	var config types.ScanConfig
+	configFilename, _ := cmd.Flags().GetString("config")
+	if configFilename != "" {
+		err := types.LoadConfig(&config, configFilename)
+		if err != nil {
+			log.Fatalf("failed to load config file: %v", err)
+		}
+		log.Debugf("loaded config from %s", configFilename)
+	}
+
+	// TODO: 2025-02-24 - add build.exclude to config
 	// filter out files that match the exclude pattern
 	exclude, _ := cmd.Flags().GetStringSlice("exclude")
 	for _, pattern := range exclude {
@@ -100,4 +115,42 @@ func RunBuildCommand(cmd *cobra.Command, args []string) {
 	enc.SetIndent("", "  ")
 	enc.Encode(buildObservations)
 	fmt.Printf("Wrote build observations to %s\n", output)
+
+	// generate CycloneDX BOM if requested
+	if sbomFilename, _ := cmd.Flags().GetString("sbom"); sbomFilename != "" {
+		log.Debugf("filtering dependencies from %d/%d observed build operations", len(buildObservations.FilesOpened), len(buildObservations.FilesExecuted))
+		buildObservations = builds.DependencyObservations(buildObservations)
+
+		dependencies, err := builds.ResolveDependencies(buildObservations)
+		if err != nil {
+			log.Fatalf("failed to parse build observations file: %v", err)
+		}
+
+		log.Debugf("resolved %d unique code dependencies", len(dependencies.Code))
+		log.Debugf("resolved %d unique tool dependencies", len(dependencies.Tools))
+		log.Debugf("resolved %d unique transitive dependencies", len(dependencies.Transitive))
+
+		bom, err := builds.GenerateCycloneDX(dependencies, config)
+		if err != nil {
+			log.Fatalf("failed to generate CycloneDX BOM: %v", err)
+		}
+
+		// write bom to output file as json
+		log.Debugf("writing SBOM to %s", sbomFilename)
+
+		out, err := os.Create(sbomFilename)
+		if err != nil {
+			log.Fatal("failed to create output file", "filename", sbomFilename, "err", err)
+		}
+
+		// use cdx provided encoder
+		encoder := cdx.NewBOMEncoder(out, cdx.BOMFileFormatJSON)
+		encoder.SetPretty(true)
+		err = encoder.Encode(bom)
+		if err != nil {
+			log.Fatal("failed to write output file", "filename", sbomFilename, "err", err)
+		}
+
+		_ = out.Close()
+	}
 }

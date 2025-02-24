@@ -10,15 +10,9 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "observer",
-	Short: "Create, manage and upload SBOMs to https://sbom.observer",
-	Long: `Create, manage and upload SBOMs to https://sbom.observer:
-
-PREVIEW: This is a preview release and is not yet ready for production use.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
-
-	Version: "dev",
+	Short: "Create SBOMs from source code or container images",
+	Long: `Create SBOMs from source code or container images`,
+	Version: types.Version,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// setup logging
 		if debug, _ := cmd.Flags().GetBool("debug"); debug {
