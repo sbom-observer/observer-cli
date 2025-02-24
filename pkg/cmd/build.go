@@ -3,21 +3,22 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/sbom-observer/build-observer/pkg/traceopens"
-	buildtypes "github.com/sbom-observer/build-observer/pkg/types"
-	"github.com/spf13/cobra"
 	"os"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/types"
 	"sort"
 	"strings"
 	"syscall"
+
+	"github.com/sbom-observer/build-observer/pkg/traceopens"
+	buildtypes "github.com/sbom-observer/build-observer/pkg/types"
+	"github.com/spf13/cobra"
+	"sbom.observer/cli/pkg/log"
+	"sbom.observer/cli/pkg/types"
 )
 
 // buildCmd represents the diff command
 var buildCmd = &cobra.Command{
 	Use:     "build",
-	Short:   "Observer a build and optionally generate a CycloneDX SBOM",
+	Short:   "Observe a build process and optionally generate a CycloneDX SBOM",
 	Long:    `TBD`,
 	Example: `sudo observer build -- make`,
 	Run:     RunBuildCommand,
@@ -29,13 +30,10 @@ func init() {
 
 	buildCmd.Flags().StringP("output", "o", "build-observations.json", "Output filename")
 	buildCmd.Flags().StringSliceP("exclude", "e", []string{".", "..", "*.so", "*.so.6", "*.so.2", "*.a", "/etc/ld.so.cache"}, "Exclude files from output")
+	buildCmd.Flags().StringP("user", "u", "", "Run command as user")
 }
 
 func RunBuildCommand(cmd *cobra.Command, args []string) {
-	//flagOutput, _ := cmd.Flags().GetString("output")
-	//flagAll, _ := cmd.Flags().GetBool("all")
-	//flagIncludePurl, _ := cmd.Flags().GetBool("include-purl")
-
 	log.Debugf("Running build command args=%v", args)
 
 	if syscall.Getuid() != 0 {
@@ -48,7 +46,8 @@ func RunBuildCommand(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	result, err := traceopens.TraceCommand(args)
+	user, _ := cmd.Flags().GetString("user")
+	result, err := traceopens.TraceCommand(args, user)
 	if err != nil {
 		fmt.Printf("Error tracing command: %s\n", err)
 		os.Exit(1)
