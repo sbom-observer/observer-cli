@@ -11,6 +11,7 @@ import (
 	"sbom.observer/cli/pkg/licenses"
 	"sbom.observer/cli/pkg/log"
 	"sbom.observer/cli/pkg/ospkgs"
+	"sbom.observer/cli/pkg/ospkgs/rpm"
 )
 
 // TODO: replace this with pkg/os/Package
@@ -94,14 +95,7 @@ func ResolveDependencies(observations BuildObservations) (*BuildDependencies, er
 		packageManager = "dpkg"
 	}
 
-	for _, db := range []string{
-		"var/lib/rpm/Packages",
-		"var/lib/rpm/Packages.db",
-		"var/lib/rpm/rpmdb.sqlite",
-		"usr/lib/sysimage/rpm/Packages",
-		"usr/lib/sysimage/rpm/Packages.db",
-		"usr/lib/sysimage/rpm/rpmdb.sqlite",
-	} {
+	for _, db := range rpm.RpmDbPaths {
 		if _, err := os.Stat(db); err == nil {
 			packageManager = "rpm"
 		}
@@ -113,11 +107,15 @@ func ResolveDependencies(observations BuildObservations) (*BuildDependencies, er
 		return nil, fmt.Errorf("failed to detect OS family: %w", err)
 	}
 
-	log.Debugf("detected os family: %s %s", osFamily.Name, osFamily.Release)
+	log.Debugf("detected os family: %s %s package manager: %s", osFamily.Name, osFamily.Release, packageManager)
 
 	switch packageManager {
 	case "dpkg":
+		osFamily.PackageManager = ospkgs.PackageManagerDebian
 		return resolveDpkgDependencies(osFamily, observations.FilesOpened, observations.FilesExecuted)
+	case "rpm":
+		osFamily.PackageManager = ospkgs.PackageManagerRPM
+		return resolveRpmDependencies(osFamily, observations.FilesOpened, observations.FilesExecuted)
 	default:
 		return nil, fmt.Errorf("unsupported build environment '%s' - cannot resolve dependencies", packageManager)
 	}

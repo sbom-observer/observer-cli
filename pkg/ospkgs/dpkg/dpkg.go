@@ -4,18 +4,20 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"golang.org/x/exp/maps"
 	"io/fs"
 	"net/textproto"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sbom.observer/cli/pkg/licenses"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/ospkgs"
+	"slices"
 	"sort"
 	"strings"
 	"time"
+
+	"golang.org/x/exp/maps"
+	"sbom.observer/cli/pkg/licenses"
+	"sbom.observer/cli/pkg/log"
+	"sbom.observer/cli/pkg/ospkgs"
 )
 
 // dkpg package contains code to parse various /var/lib/dpkg/* file types and provide
@@ -69,6 +71,15 @@ func (i *Indexer) PackageForFile(filename string) (*ospkgs.Package, bool) {
 	}
 
 	return pkg, ok
+}
+
+func (i *Indexer) PackageThatProvides(name string) (*ospkgs.Package, bool) {
+	for _, pkg := range i.packages {
+		if slices.Contains(pkg.Provides, name) {
+			return pkg, true
+		}
+	}
+	return nil, false
 }
 
 func (i *Indexer) InstalledPackage(name string) *ospkgs.Package {

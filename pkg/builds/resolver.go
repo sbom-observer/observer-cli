@@ -8,17 +8,37 @@ import (
 	"strings"
 
 	"golang.org/x/exp/maps"
+	"sbom.observer/cli/pkg/licenses"
 	"sbom.observer/cli/pkg/log"
 	"sbom.observer/cli/pkg/ospkgs"
 	"sbom.observer/cli/pkg/ospkgs/dpkg"
+	"sbom.observer/cli/pkg/ospkgs/rpm"
 )
 
 // TODO: move package
 
+type PackageIndexer interface {
+	Create() error
+	PackageNameForFile(filename string) (string, bool)
+	PackageForFile(filename string) (*ospkgs.Package, bool)
+	PackageThatProvides(name string) (*ospkgs.Package, bool)
+	InstalledPackage(name string) *ospkgs.Package
+	LicensesForPackage(name string) ([]licenses.License, error)
+}
+
+func resolveRpmDependencies(osFamily ospkgs.OSFamily, opens []string, executions []string) (*BuildDependencies, error) {
+	indexer := rpm.NewIndexer()
+	return resolvePackageDependencies(osFamily, opens, executions, indexer)
+}
+
 func resolveDpkgDependencies(osFamily ospkgs.OSFamily, opens []string, executions []string) (*BuildDependencies, error) {
+	indexer := dpkg.NewIndexer()
+	return resolvePackageDependencies(osFamily, opens, executions, indexer)
+}
+
+func resolvePackageDependencies(osFamily ospkgs.OSFamily, opens []string, executions []string, indexer PackageIndexer) (*BuildDependencies, error) {
 	log := log.Logger.WithPrefix("buildops")
 
-	indexer := dpkg.NewIndexer()
 	err := indexer.Create()
 	if err != nil {
 		return nil, err
@@ -122,31 +142,30 @@ func resolveDpkgDependencies(osFamily ospkgs.OSFamily, opens []string, execution
 	// transitive dependencies
 	var transitive []Package
 	for _, pkg := range append(maps.Values(code), maps.Values(tools)...) {
-		transitive = resolveDependencies(pkg.Dependencies, transitive, osFamily, indexer)
+		transitive = resolveTransitiveDependencies(pkg.Dependencies, transitive, osFamily, indexer)
 	}
 
-	// resolve dependency names -> ids
-	nameIndex := map[string]string{}
-
-	for _, pkg := range append(maps.Values(code), maps.Values(tools)...) {
-		if !pkg.IsSourcePackage {
-			nameIndex[pkg.Name] = pkg.Id
-		}
-	}
-
-	for _, pkg := range transitive {
-		if !pkg.IsSourcePackage {
-			nameIndex[pkg.Name] = pkg.Id
-		}
-	}
-
+	// resolve ospkgs names -> pkg.Id
 	for _, pkg := range append(maps.Values(code), maps.Values(tools)...) {
 		var resolved []string
 		for _, dep := range pkg.Dependencies {
-			if !strings.Contains(dep, "@") {
-				dep = nameIndex[dep]
+			// rpmlib is a dummy package that is not a real package
+			if strings.HasPrefix(dep, "rpmlib(") {
+				continue
 			}
-			resolved = append(resolved, dep)
+
+			// ignore src: dependencies
+			if strings.HasPrefix(dep, "src:") {
+				continue
+			}
+
+			pkgThatProvides, found := indexer.PackageThatProvides(dep)
+			if !found {
+				log.Warn("failed to resolve package that provides", "pkg", pkg.Id, "dep", dep)
+				continue
+			}
+
+			resolved = append(resolved, pkgThatProvides.Name+"@"+pkgThatProvides.Version)
 		}
 		pkg.Dependencies = resolved
 	}
@@ -154,10 +173,23 @@ func resolveDpkgDependencies(osFamily ospkgs.OSFamily, opens []string, execution
 	for i := range transitive {
 		var resolved []string
 		for _, dep := range transitive[i].Dependencies {
-			if !strings.Contains(dep, "@") {
-				dep = nameIndex[dep]
+			// rpmlib is a dummy package that is not a real package
+			if strings.HasPrefix(dep, "rpmlib(") {
+				continue
 			}
-			resolved = append(resolved, dep)
+
+			// ignore src: dependencies
+			if strings.HasPrefix(dep, "src:") {
+				continue
+			}
+
+			pkgThatProvides, found := indexer.PackageThatProvides(dep)
+			if !found {
+				log.Warn("failed to resolve package that provides (transitive)", "pkg", transitive[i].Id, "dep", dep)
+				continue
+			}
+
+			resolved = append(resolved, pkgThatProvides.Name+"@"+pkgThatProvides.Version)
 		}
 		transitive[i].Dependencies = resolved
 	}
@@ -199,10 +231,21 @@ func resolveDpkgDependencies(osFamily ospkgs.OSFamily, opens []string, execution
 	return result, nil
 }
 
-func resolveDependencies(names []string, collection []Package, family ospkgs.OSFamily, indexer *dpkg.Indexer) []Package {
+func resolveTransitiveDependencies(names []string, collection []Package, family ospkgs.OSFamily, indexer PackageIndexer) []Package {
 	for _, dep := range names {
-		depPkg := indexer.InstalledPackage(dep)
-		if depPkg == nil {
+		// rpmlib is a dummy package that is not a real package
+		if strings.HasPrefix(dep, "rpmlib(") {
+			continue
+		}
+
+		// ignore src: dependencies
+		if strings.HasPrefix(dep, "src:") {
+			continue
+		}
+
+		depPkg, found := indexer.PackageThatProvides(dep)
+		if !found {
+			log.Debug("dependency not found", "dep", dep)
 			continue
 		}
 
@@ -220,7 +263,7 @@ func resolveDependencies(names []string, collection []Package, family ospkgs.OSF
 		}
 
 		collection = append(collection, osDependencyPackage)
-		collection = resolveDependencies(osDependencyPackage.Dependencies, collection, family, indexer)
+		collection = resolveTransitiveDependencies(osDependencyPackage.Dependencies, collection, family, indexer)
 	}
 
 	return collection

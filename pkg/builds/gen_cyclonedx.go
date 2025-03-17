@@ -4,13 +4,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	cdx "github.com/CycloneDX/cyclonedx-go"
 	"io"
 	"os"
+	"time"
+
+	cdx "github.com/CycloneDX/cyclonedx-go"
 	"sbom.observer/cli/pkg/ids"
 	"sbom.observer/cli/pkg/log"
+	"sbom.observer/cli/pkg/ospkgs"
 	"sbom.observer/cli/pkg/types"
-	"time"
 )
 
 // https://json-schema.org/understanding-json-schema/reference/string.html#dates-and-times
@@ -29,10 +31,10 @@ func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.B
 		Tools: &cdx.ToolsChoice{
 			Components: &[]cdx.Component{
 				{
-					Type:        cdx.ComponentTypeApplication,
-					Name:        "observer",
-					Publisher:   "https://sbom.observer",
-					Version:     types.Version,
+					Type:      cdx.ComponentTypeApplication,
+					Name:      "observer",
+					Publisher: "https://sbom.observer",
+					Version:   types.Version,
 					ExternalReferences: &[]cdx.ExternalReference{
 						{
 							Type: cdx.ERTypeWebsite,
@@ -106,11 +108,20 @@ func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.B
 			if component.Licenses == nil {
 				component.Licenses = &cdx.Licenses{}
 			}
-			*component.Licenses = append(*component.Licenses, cdx.LicenseChoice{
-				License: &cdx.License{
-					ID: license.Id,
-				},
-			})
+
+			if license.Expression != "" {
+				*component.Licenses = append(*component.Licenses, cdx.LicenseChoice{
+					Expression: license.Expression,
+				})
+			}
+
+			if license.Id != "" {
+				*component.Licenses = append(*component.Licenses, cdx.LicenseChoice{
+					License: &cdx.License{
+						ID: license.Id,
+					},
+				})
+			}
 		}
 
 		components = append(components, component)
@@ -198,7 +209,7 @@ func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.B
 			for _, sourceDep := range dep.Dependencies {
 				i, found := index[sourceDep]
 				if !found {
-					log.Warn("cyclonedx: dependencies: build observation package dependency not found", "sourceDep", sourceDep)
+					log.Warn("cyclonedx: dependencies: build observation package dependency not found", "dep", dep.Id, "depCount", len(dep.Dependencies), "sourceDep", sourceDep)
 					continue
 				}
 				sourceComponent := components[i]
@@ -225,16 +236,25 @@ func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.B
 }
 
 func purlForPackage(dep Package) string {
-	var distro string
+	if dep.OSFamily.PackageManager == ospkgs.PackageManagerDebian {
+		var distro string
 
-	switch dep.OSFamily.Name {
-	case "Debian":
-		distro = fmt.Sprintf("debian-%s", dep.OSFamily.Release)
-	default:
-		distro = "unknown"
+		switch dep.OSFamily.Name {
+		case "debian":
+			distro = fmt.Sprintf("%s-%s", dep.OSFamily.Distro, dep.OSFamily.Release)
+		default:
+			distro = "unknown"
+		}
+
+		return fmt.Sprintf("pkg:deb/debian/%s@%s?arch=%s&distro=%s", dep.Name, dep.Version, dep.Arch, distro)
 	}
 
-	return fmt.Sprintf("pkg:deb/debian/%s@%s?arch=%s&distro=%s", dep.Name, dep.Version, dep.Arch, distro)
+	if dep.OSFamily.PackageManager == ospkgs.PackageManagerRPM {
+		distro := fmt.Sprintf("%s-%s", dep.OSFamily.Distro, dep.OSFamily.Release)
+		return fmt.Sprintf("pkg:rpm/%s/%s@%s?arch=%s&distro=%s", dep.OSFamily.Name, dep.Name, dep.Version, dep.Arch, distro)
+	}
+
+	return fmt.Sprintf("pkg:generic/%s@%s", dep.Name, dep.Version)
 }
 
 // HashFileSha256 calculates the SHA-256 hash of a file
