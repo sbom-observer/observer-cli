@@ -107,7 +107,7 @@ func ResolveDependencies(observations BuildObservations) (*BuildDependencies, er
 		return nil, fmt.Errorf("failed to detect OS family: %w", err)
 	}
 
-	log.Debugf("detected os family: %s %s package manager: %s", osFamily.Name, osFamily.Release, packageManager)
+	log.Debugf("detected os family: %s %s (%s)", osFamily.Name, osFamily.Release, packageManager)
 
 	switch packageManager {
 	case "dpkg":

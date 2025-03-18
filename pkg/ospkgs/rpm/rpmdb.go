@@ -67,14 +67,18 @@ func (i *indexer) PackageForFile(filename string) (*ospkgs.Package, bool) {
 }
 
 func (i *indexer) PackageThatProvides(name string) (*ospkgs.Package, bool) {
+	// name can be a filename, try to find the package that provides it
+	if pkg, ok := i.PackageForFile(name); ok {
+		return pkg, true
+	}
+
 	for _, pkg := range i.packages {
 		if slices.Contains(pkg.Provides, name) {
 			return pkg, true
 		}
 	}
 
-	// name can be a filename, try to find the package that provides it
-	return i.PackageForFile(name)
+	return nil, false
 }
 
 func (i *indexer) InstalledPackage(name string) *ospkgs.Package {
