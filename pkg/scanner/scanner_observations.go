@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
 	"sbom.observer/cli/pkg/builds"
 
 	"sbom.observer/cli/pkg/log"
@@ -57,6 +58,15 @@ func (s *BuildObservationsScanner) Scan(target *ScanTarget) error {
 				return fmt.Errorf("failed to generate CycloneDX BOM: %w", err)
 			}
 
+			// report unresolved files
+			if len(dependencies.UnresolvedFiles) > 0 {
+				log.Warn("scanning build observations found unattributed files", "observations", filepath.Join(target.Path, filename))
+				for _, file := range dependencies.UnresolvedFiles {
+					log.Warn("unattributed file", "file", file)
+				}
+			}
+
+			target.Results = append(target.Results, bom)
 			target.Results = append(target.Results, bom)
 		}
 	}

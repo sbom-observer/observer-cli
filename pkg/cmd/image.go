@@ -14,7 +14,7 @@ import (
 
 // imageCmd represents the image command
 var imageCmd = &cobra.Command{
-	Use:   "image <image>",
+	Use:   "image image",
 	Short: "Create an SBOM for a container image",
 	Long:  `Create an SBOM for a container image`,
 	Run:   ImageCommand,

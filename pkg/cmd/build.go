@@ -21,7 +21,7 @@ var buildCmd = &cobra.Command{
 	Use:     "build",
 	Short:   "Observe a build process and optionally generate a CycloneDX SBOM",
 	Long:    "Observe and record files opened and executed during a build process and optionally generate a CycloneDX SBOM",
-	Example: `sudo observer build -u ci -- make`,
+	Example: `sudo observer build -u cicd -- make`,
 	Run:     RunBuildCommand,
 	Args:    cobra.MinimumNArgs(1),
 }
@@ -129,6 +129,14 @@ func RunBuildCommand(cmd *cobra.Command, args []string) {
 		log.Debugf("resolved %d unique code dependencies", len(dependencies.Code))
 		log.Debugf("resolved %d unique tool dependencies", len(dependencies.Tools))
 		log.Debugf("resolved %d unique transitive dependencies", len(dependencies.Transitive))
+
+		// report unresolved files
+		if len(dependencies.UnresolvedFiles) > 0 {
+			log.Warn("scanning build observations found unattributed files")
+			for _, file := range dependencies.UnresolvedFiles {
+				log.Warn("unattributed file", "file", file)
+			}
+		}
 
 		bom, err := builds.GenerateCycloneDX(dependencies, config)
 		if err != nil {

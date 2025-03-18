@@ -46,6 +46,7 @@ func resolvePackageDependencies(osFamily ospkgs.OSFamily, opens []string, execut
 
 	code := map[string]*Package{}
 	tools := map[string]*Package{}
+	var unresolvedFiles []string
 
 	// parse filename form lines and deduplicate (more than one compiler might open the same file)
 	includeFiles := map[string]struct{}{}
@@ -59,7 +60,8 @@ func resolvePackageDependencies(osFamily ospkgs.OSFamily, opens []string, execut
 	for fileName := range includeFiles {
 		osPkg, found := indexer.PackageForFile(fileName)
 		if !found {
-			return nil, fmt.Errorf("failed to resolve package for file %s: not found", fileName)
+			unresolvedFiles = append(unresolvedFiles, fileName)
+			continue
 		}
 
 		// TODO: remove this package type
@@ -111,7 +113,8 @@ func resolvePackageDependencies(osFamily ospkgs.OSFamily, opens []string, execut
 
 		osPkg, found := indexer.PackageForFile(fileName)
 		if !found {
-			return nil, fmt.Errorf("failed to resolve package for file %s: not found", fileName)
+			unresolvedFiles = append(unresolvedFiles, fileName)
+			continue
 		}
 
 		// TODO: remove this package type
@@ -227,6 +230,8 @@ func resolvePackageDependencies(osFamily ospkgs.OSFamily, opens []string, execut
 		}
 		return cmp.Compare(a.Name, b.Name)
 	})
+
+	result.UnresolvedFiles = unresolvedFiles
 
 	return result, nil
 }

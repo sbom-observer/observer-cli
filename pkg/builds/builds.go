@@ -28,9 +28,10 @@ type Package struct {
 }
 
 type BuildDependencies struct {
-	Code       []Package
-	Tools      []Package
-	Transitive []Package
+	Code            []Package
+	Tools           []Package
+	Transitive      []Package
+	UnresolvedFiles []string
 	// NOTE: Code and Tools might contain the same package
 }
 
