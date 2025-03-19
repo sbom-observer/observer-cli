@@ -72,6 +72,7 @@ func resolvePackageDependencies(osFamily ospkgs.OSFamily, opens []string, execut
 			Arch:         osPkg.Architecture,
 			Dependencies: osPkg.Dependencies,
 			OSFamily:     osFamily,
+			Scope:        ScopeCode,
 		}
 
 		licensesForPackage, err := indexer.LicensesForPackage(osPkg.Name)
@@ -126,6 +127,7 @@ func resolvePackageDependencies(osFamily ospkgs.OSFamily, opens []string, execut
 			Dependencies: osPkg.Dependencies,
 			Files:        []string{fileName},
 			OSFamily:     osFamily,
+			Scope:        ScopeTool,
 		}
 
 		licensesForPackage, err := indexer.LicensesForPackage(osPkg.Name)
@@ -145,7 +147,7 @@ func resolvePackageDependencies(osFamily ospkgs.OSFamily, opens []string, execut
 	// transitive dependencies
 	var transitive []Package
 	for _, pkg := range append(maps.Values(code), maps.Values(tools)...) {
-		transitive = resolveTransitiveDependencies(pkg.Dependencies, transitive, osFamily, indexer)
+		transitive = resolveTransitiveDependencies(pkg.Dependencies, pkg.Scope, transitive, osFamily, indexer)
 	}
 
 	// resolve ospkgs names -> pkg.Id
@@ -236,7 +238,7 @@ func resolvePackageDependencies(osFamily ospkgs.OSFamily, opens []string, execut
 	return result, nil
 }
 
-func resolveTransitiveDependencies(names []string, collection []Package, family ospkgs.OSFamily, indexer PackageIndexer) []Package {
+func resolveTransitiveDependencies(names []string, scope Scope, collection []Package, family ospkgs.OSFamily, indexer PackageIndexer) []Package {
 	for _, dep := range names {
 		// rpmlib is a dummy package that is not a real package
 		if strings.HasPrefix(dep, "rpmlib(") {
@@ -265,10 +267,11 @@ func resolveTransitiveDependencies(names []string, collection []Package, family 
 			Version:      depPkg.Version,
 			Dependencies: depPkg.Dependencies,
 			OSFamily:     family,
+			Scope:        scope,
 		}
 
 		collection = append(collection, osDependencyPackage)
-		collection = resolveTransitiveDependencies(osDependencyPackage.Dependencies, collection, family, indexer)
+		collection = resolveTransitiveDependencies(osDependencyPackage.Dependencies, scope, collection, family, indexer)
 	}
 
 	return collection

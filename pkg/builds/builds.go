@@ -14,7 +14,14 @@ import (
 	"sbom.observer/cli/pkg/ospkgs/rpm"
 )
 
-// TODO: replace this with pkg/os/Package
+type Scope string
+
+const (
+	ScopeCode Scope = "code"
+	ScopeTool Scope = "tool"
+)
+
+// TODO: replace this with pkg/os/Package?
 type Package struct {
 	Id              string
 	Arch            string
@@ -25,6 +32,7 @@ type Package struct {
 	IsSourcePackage bool
 	Licenses        []licenses.License
 	OSFamily        ospkgs.OSFamily
+	Scope           Scope
 }
 
 type BuildDependencies struct {

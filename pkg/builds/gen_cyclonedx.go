@@ -146,6 +146,7 @@ func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.B
 			Name:       dep.Name,
 			Version:    dep.Version,
 			PackageURL: purl,
+			Scope:      cdx.ScopeExcluded,
 		}
 
 		var subComponents []cdx.Component
@@ -195,6 +196,10 @@ func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.B
 			Name:       dep.Name,
 			Version:    dep.Version,
 			PackageURL: purl,
+		}
+
+		if dep.Scope == ScopeTool {
+			component.Scope = cdx.ScopeExcluded
 		}
 
 		components = append(components, component)
