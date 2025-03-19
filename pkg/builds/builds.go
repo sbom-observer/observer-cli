@@ -45,12 +45,20 @@ func DependencyObservations(observations BuildObservations) BuildObservations {
 	calls := map[string]struct{}{}
 
 	for _, open := range observations.FilesOpened {
+		if strings.HasPrefix(open, observations.WorkingDirectory) {
+			continue
+		}
+
 		if isExternalDependency(open) {
 			includes[open] = struct{}{}
 		}
 	}
 
 	for _, exec := range observations.FilesExecuted {
+		if strings.HasPrefix(exec, observations.WorkingDirectory) {
+			continue
+		}
+
 		if isCompilerCall(exec) {
 			calls[exec] = struct{}{}
 		}

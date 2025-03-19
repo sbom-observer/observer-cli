@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"sbom.observer/cli/pkg/builds"
 	"sbom.observer/cli/pkg/log"
+	"sbom.observer/cli/pkg/scanner"
 	"sbom.observer/cli/pkg/types"
 )
 
@@ -118,29 +119,9 @@ func RunBuildCommand(cmd *cobra.Command, args []string) {
 
 	// generate CycloneDX BOM if requested
 	if sbomFilename, _ := cmd.Flags().GetString("sbom"); sbomFilename != "" {
-		log.Debugf("filtering dependencies from %d/%d observed build operations", len(buildObservations.FilesOpened), len(buildObservations.FilesExecuted))
-		buildObservations = builds.DependencyObservations(buildObservations)
-
-		dependencies, err := builds.ResolveDependencies(buildObservations)
+		bom, err := scanner.ScanObservations(config, buildObservations)
 		if err != nil {
-			log.Fatalf("failed to parse build observations file: %v", err)
-		}
-
-		log.Debugf("resolved %d unique code dependencies", len(dependencies.Code))
-		log.Debugf("resolved %d unique tool dependencies", len(dependencies.Tools))
-		log.Debugf("resolved %d unique transitive dependencies", len(dependencies.Transitive))
-
-		// report unresolved files
-		if len(dependencies.UnresolvedFiles) > 0 {
-			log.Warn("scanning build observations found unattributed files")
-			for _, file := range dependencies.UnresolvedFiles {
-				log.Warn("unattributed file", "file", file)
-			}
-		}
-
-		bom, err := builds.GenerateCycloneDX(dependencies, config)
-		if err != nil {
-			log.Fatalf("failed to generate CycloneDX BOM: %v", err)
+			log.Fatalf("failed to scan build observations: %v", err)
 		}
 
 		// write bom to output file as json
