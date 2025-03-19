@@ -41,12 +41,16 @@ func (s *ScalibrRepoScanner) Priority() int {
 func (s *ScalibrRepoScanner) Scan(target *ScanTarget) error {
 	capabilities := &plugin.Capabilities{
 		OS:            platform.OS(),
-		Network:       true,
+		Network:       plugin.NetworkOnline,
 		DirectFS:      true,
 		RunningSystem: true,
 	}
 
-	extractors := filesystemextractors.Default // TODO: curate
+	extractors, err := filesystemextractors.ExtractorsFromNames([]string{"default"})
+	if err != nil {
+		return fmt.Errorf("failed to get default extractors: %w", err)
+	}
+
 	extractors = append(extractors, localextractors.CrystalShardLockExtractor{})
 
 	var standaloneExtractors []standalone.Extractor = nil

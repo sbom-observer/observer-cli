@@ -1,8 +1,10 @@
 package log
 
 import (
-	"github.com/charmbracelet/log"
 	"os"
+
+	"github.com/charmbracelet/log"
+	scalibrlog "github.com/google/osv-scalibr/log"
 )
 
 var Logger *log.Logger
@@ -14,6 +16,7 @@ func init() {
 		ReportTimestamp: false,
 		ReportCaller:    false,
 	})
+	scalibrlog.SetLogger(&ScalibrAdapter{Logger})
 }
 
 // Debug logs a debug message.
