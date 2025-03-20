@@ -1,13 +1,15 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sbom.observer/cli/pkg/cdxutil"
 	"slices"
 	"sort"
 	"strings"
+
+	"sbom.observer/cli/pkg/cdxutil"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -58,7 +60,7 @@ func RunDiffCommand(cmd *cobra.Command, args []string) {
 	result.NameOne = filepath.Base(fileOne)
 	result.NameTwo = filepath.Base(fileTwo)
 
-	output := renderResult(result, !flagAll, flagIncludePurl)
+	output := renderResult(bomOne, bomTwo, result, !flagAll, flagIncludePurl)
 
 	if flagOutput != "" {
 		err = os.WriteFile(flagOutput, []byte(output), 0644)
@@ -70,7 +72,25 @@ func RunDiffCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-func renderResult(result *diffResult, skipEqual bool, includePurl bool) string {
+func renderResult(bomOne, bomTwo *cdx.BOM, result *diffResult, skipEqual bool, includePurl bool) string {
+	var buffer bytes.Buffer
+
+	// render bom metadata
+	t := table.NewWriter()
+	t.AppendHeader(table.Row{"", result.NameOne, result.NameTwo})
+	t.AppendRow(table.Row{"BOMRef", bomOne.Metadata.Component.BOMRef, bomTwo.Metadata.Component.BOMRef})
+	t.AppendRow(table.Row{"Type", bomOne.Metadata.Component.Type, bomTwo.Metadata.Component.Type})
+	t.AppendRow(table.Row{"Name", bomOne.Metadata.Component.Name, bomTwo.Metadata.Component.Name})
+	t.AppendRow(table.Row{"Group", bomOne.Metadata.Component.Group, bomTwo.Metadata.Component.Group})
+	t.AppendRow(table.Row{"Version", bomOne.Metadata.Component.Version, bomTwo.Metadata.Component.Version})
+	t.AppendRow(table.Row{"Author", bomOne.Metadata.Component.Author, bomTwo.Metadata.Component.Author})
+	t.AppendRow(table.Row{"Copyright", bomOne.Metadata.Component.Copyright, bomTwo.Metadata.Component.Copyright})
+
+	buffer.WriteString("Metadata\n")
+	buffer.WriteString(t.Render())
+	buffer.WriteString("\n\n")
+
+	// render components
 	versionCountOne := 0
 	versionCountTwo := 0
 
@@ -79,8 +99,8 @@ func renderResult(result *diffResult, skipEqual bool, includePurl bool) string {
 		versionCountTwo += len(component.VersionsInBomTwo)
 	}
 
-	t := table.NewWriter()
-	headerRow := table.Row{"#", "", "Name", result.NameOne, result.NameTwo}
+	t = table.NewWriter()
+	headerRow := table.Row{"#", "", "Name", result.NameOne, "Scope", result.NameTwo, "Scope"}
 	if includePurl {
 		headerRow = append(headerRow, result.NameOne, result.NameTwo)
 	}
@@ -120,7 +140,9 @@ func renderResult(result *diffResult, skipEqual bool, includePurl bool) string {
 			checkmark,
 			component.Name,
 			strings.Join(component.VersionsInBomOne, ", "),
+			component.ScopeInBomOne,
 			strings.Join(component.VersionsInBomTwo, ", "),
+			component.ScopeInBomTwo,
 		}
 
 		if includePurl {
@@ -130,8 +152,13 @@ func renderResult(result *diffResult, skipEqual bool, includePurl bool) string {
 		t.AppendRow(row)
 	}
 
-	t.AppendFooter(table.Row{"", "", len(result.Components), versionCountOne, versionCountTwo})
-	return t.Render()
+	t.AppendFooter(table.Row{len(result.Components), "", "", versionCountOne, "", versionCountTwo, ""})
+
+	buffer.WriteString("Components\n")
+	buffer.WriteString(t.Render())
+	buffer.WriteString("\n")
+
+	return buffer.String()
 }
 
 type diffResult struct {
@@ -146,6 +173,8 @@ type componentDiff struct {
 	VersionsInBomTwo []string `json:"versionsInBomTwo"`
 	PurlsInBomOne    []string `json:"purlsInBomOne"`
 	PurlsInBomTwo    []string `json:"purlsInBomTwo"`
+	ScopeInBomOne    string   `json:"scopeInBomOne"`
+	ScopeInBomTwo    string   `json:"scopeInBomTwo"`
 }
 
 // diffBOMs compares two CycloneDX BOMs and returns a diffResult
@@ -177,6 +206,9 @@ func diffBOMs(bomOne, bomTwo *cdx.BOM) *diffResult {
 			if comp.PackageURL != "" {
 				componentMap[name].PurlsInBomOne = append(componentMap[name].PurlsInBomOne, comp.PackageURL)
 			}
+			if comp.Scope != "" {
+				componentMap[name].ScopeInBomOne = string(comp.Scope)
+			}
 		}
 	}
 
@@ -184,6 +216,9 @@ func diffBOMs(bomOne, bomTwo *cdx.BOM) *diffResult {
 	if bomTwo.Components != nil {
 		for _, comp := range *bomTwo.Components {
 			name := comp.Name
+			if comp.Group != "" {
+				name = fmt.Sprintf("%s/%s", comp.Group, name)
+			}
 			if _, exists := componentMap[name]; !exists {
 				componentMap[name] = &componentDiff{
 					Name:             name,
@@ -198,6 +233,9 @@ func diffBOMs(bomOne, bomTwo *cdx.BOM) *diffResult {
 			}
 			if comp.PackageURL != "" {
 				componentMap[name].PurlsInBomTwo = append(componentMap[name].PurlsInBomTwo, comp.PackageURL)
+			}
+			if comp.Scope != "" {
+				componentMap[name].ScopeInBomTwo = string(comp.Scope)
 			}
 		}
 	}
