@@ -195,6 +195,25 @@ func mergeCycloneDX(boms []*cdx.BOM) (*cdx.BOM, error) {
 			for _, component := range *bom.Components {
 				_, found := components[component.BOMRef]
 
+				// merge properties
+				if found && component.Properties != nil {
+					if idx := slices.IndexFunc(*merged.Components, func(c cdx.Component) bool {
+						return c.BOMRef == component.BOMRef
+					}); idx != -1 {
+						existingComponent := (*merged.Components)[idx]
+						if existingComponent.Properties == nil {
+							existingComponent.Properties = &[]cdx.Property{}
+						}
+						for _, property := range *component.Properties {
+							if !slices.ContainsFunc(*existingComponent.Properties, func(p cdx.Property) bool {
+								return p.Name == property.Name
+							}) {
+								*existingComponent.Properties = append(*existingComponent.Properties, property)
+							}
+						}
+					}
+				}
+
 				if !found {
 					components[component.BOMRef] = component.BOMRef
 					*merged.Components = append(*merged.Components, component)

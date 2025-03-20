@@ -147,6 +147,12 @@ func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.B
 			Version:    dep.Version,
 			PackageURL: purl,
 			Scope:      cdx.ScopeExcluded,
+			Properties: &[]cdx.Property{
+				{
+					Name:  "observer:build:role",
+					Value: "tool",
+				},
+			},
 		}
 
 		var subComponents []cdx.Component
