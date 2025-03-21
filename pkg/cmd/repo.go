@@ -65,27 +65,39 @@ func RunRepoCommand(cmd *cobra.Command, args []string) {
 	}
 
 	// find targets
-	targets := map[string]*scanner.ScanTarget{}
-	for _, arg := range args {
-		ts, err := scanner.FindScanTargets(arg, flagDepth)
-		if err != nil {
-			log.Fatal("failed to find scan targets", "err", err)
-		}
-
-		if len(ts) == 0 {
-			log.Infof("No targets found in %s", args[0])
-			os.Exit(0)
-		}
-
-		for path, target := range ts {
-			if existingTarget, ok := targets[path]; ok {
-				for file, ecosystem := range existingTarget.Files {
-					target.Files[file] = ecosystem
-				}
+	var targets []*scanner.ScanTarget
+	{
+		pathToTarget := map[string]*scanner.ScanTarget{}
+		for _, arg := range args {
+			ts, err := scanner.FindScanTargets(arg, flagDepth)
+			if err != nil {
+				log.Fatal("failed to find scan targets", "err", err)
 			}
 
-			targets[path] = target
+			if len(ts) == 0 {
+				log.Infof("No targets found in %s", args[0])
+				os.Exit(0)
+			}
+
+			for path, target := range ts {
+				if existingTarget, ok := pathToTarget[path]; ok {
+					for file, ecosystem := range existingTarget.Files {
+						target.Files[file] = ecosystem
+					}
+				}
+
+				pathToTarget[path] = target
+			}
 		}
+
+		for _, target := range pathToTarget {
+			targets = append(targets, target)
+		}
+
+		// sort targets to make scanning is deterministic
+		sort.Slice(targets, func(i, j int) bool {
+			return len(targets[i].Path) < len(targets[j].Path)
+		})
 	}
 
 	// TODO: remove
