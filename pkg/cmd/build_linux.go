@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"syscall"
@@ -85,6 +86,9 @@ func RunBuildCommand(cmd *cobra.Command, args []string) {
 		}
 		log.Debugf("loaded config from %s", configFilename)
 	}
+
+	// set config name to cwd
+	config.Component.Name = filepath.Base(cwd)
 
 	// TODO: 2025-02-24 - add build.exclude to config
 	// filter out files that match the exclude pattern

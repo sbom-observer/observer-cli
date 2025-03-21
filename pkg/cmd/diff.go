@@ -31,12 +31,14 @@ func init() {
 	diffCmd.Flags().BoolP("all", "a", false, "Output all components, not just the differences (default: false)")
 	diffCmd.Flags().StringP("output", "o", "", "Output file for the results (default: stdout)")
 	diffCmd.Flags().BoolP("include-purl", "p", false, "Include PURLs in the output (default: false)")
+	diffCmd.Flags().BoolP("markdown", "m", false, "Output in markdown format (default: false)")
 }
 
 func RunDiffCommand(cmd *cobra.Command, args []string) {
 	flagOutput, _ := cmd.Flags().GetString("output")
 	flagAll, _ := cmd.Flags().GetBool("all")
 	flagIncludePurl, _ := cmd.Flags().GetBool("include-purl")
+	flagMarkdown, _ := cmd.Flags().GetBool("markdown")
 	if len(args) != 2 {
 		log.Fatal("filenames to two SBOMs are required as arguments")
 	}
@@ -60,7 +62,7 @@ func RunDiffCommand(cmd *cobra.Command, args []string) {
 	result.NameOne = filepath.Base(fileOne)
 	result.NameTwo = filepath.Base(fileTwo)
 
-	output := renderResult(bomOne, bomTwo, result, !flagAll, flagIncludePurl)
+	output := renderResult(bomOne, bomTwo, result, !flagAll, flagIncludePurl, flagMarkdown)
 
 	if flagOutput != "" {
 		err = os.WriteFile(flagOutput, []byte(output), 0644)
@@ -72,7 +74,7 @@ func RunDiffCommand(cmd *cobra.Command, args []string) {
 	}
 }
 
-func renderResult(bomOne, bomTwo *cdx.BOM, result *diffResult, skipEqual bool, includePurl bool) string {
+func renderResult(bomOne, bomTwo *cdx.BOM, result *diffResult, skipEqual bool, includePurl bool, renderMarkdown bool) string {
 	var buffer bytes.Buffer
 
 	// render bom metadata
@@ -87,7 +89,11 @@ func renderResult(bomOne, bomTwo *cdx.BOM, result *diffResult, skipEqual bool, i
 	t.AppendRow(table.Row{"Copyright", bomOne.Metadata.Component.Copyright, bomTwo.Metadata.Component.Copyright})
 
 	buffer.WriteString("Metadata\n")
-	buffer.WriteString(t.Render())
+	if renderMarkdown {
+		buffer.WriteString(t.RenderMarkdown())
+	} else {
+		buffer.WriteString(t.Render())
+	}
 	buffer.WriteString("\n\n")
 
 	// render components
@@ -155,7 +161,11 @@ func renderResult(bomOne, bomTwo *cdx.BOM, result *diffResult, skipEqual bool, i
 	t.AppendFooter(table.Row{len(result.Components), "", "", versionCountOne, "", versionCountTwo, ""})
 
 	buffer.WriteString("Components\n")
-	buffer.WriteString(t.Render())
+	if renderMarkdown {
+		buffer.WriteString(t.RenderMarkdown())
+	} else {
+		buffer.WriteString(t.Render())
+	}
 	buffer.WriteString("\n")
 
 	return buffer.String()
