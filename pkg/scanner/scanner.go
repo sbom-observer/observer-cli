@@ -166,6 +166,9 @@ func IdentifyEcosystem(path string, fileName string) Ecosystem {
 		return EcosystemUnknownBinary
 	}
 
+	if isSBOM(fileName) {
+		return EcosystemSBOM
+	}
 	return EcosystemUnknown
 }
 
@@ -182,6 +185,19 @@ func isExecutableBinary(fileName string) bool {
 	// ignore too large (500mb+) files
 	if fi.Size() > 500*1024*1024 {
 		log.Debugf("skipping too large file", "fileName", fileName, "size", fi.Size())
+
+func isSBOM(fileName string) bool {
+	// Format support based on: https://spdx.dev/resources/use/#documents
+	// Format support based on: https://cyclonedx.org/specification/overview/#recognized-file-patterns
+	extensions := []string{".spdx.json", ".spdx", ".spdx.yml", ".spdx.rdf", ".spdx.rdf.xml", ".cdx.json", ".cdx.xml", "bom.json", "bom.xml"}
+	for _, ext := range extensions {
+		if strings.HasSuffix(fileName, ext) {
+			return true
+		}
+	}
+	return false
+}
+
 		return false
 	}
 
