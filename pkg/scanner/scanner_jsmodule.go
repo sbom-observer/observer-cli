@@ -13,6 +13,10 @@ func (s *ModuleNameScanner) Id() string {
 	return "moduleName"
 }
 
+func (s *ModuleNameScanner) IsAvailable() bool {
+	return true
+}
+
 func (s *ModuleNameScanner) Priority() int {
 	return 200
 }

@@ -34,6 +34,7 @@ const EcosystemCrystal Ecosystem = "crystal"
 const EcosystemBuildObserver Ecosystem = "build-observer"
 const EcosystemObserver Ecosystem = "observer"
 const EcosystemUnknownBinary Ecosystem = "binary"
+const EcosystemSBOM Ecosystem = "sbom"
 
 // TODO: expand
 
@@ -51,6 +52,7 @@ type RepoScanner interface {
 	Id() string
 	Priority() int
 	Scan(*ScanTarget) error
+	IsAvailable() bool
 }
 
 func FindScanTargets(initialTarget string, maxDepth uint) (map[string]*ScanTarget, error) {
@@ -145,7 +147,7 @@ func IdentifyEcosystem(path string, fileName string) Ecosystem {
 		return EcosystemJava
 	case "build.gradle", "build.gradle.kts", "gradle.lockfile", "buildscript-gradle.lockfile", "settings.gradle", "settings.gradle.kts":
 		return EcosystemJava
-	case "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "Pipfile", "Pipfile.lock", "poetry.lock":
+	case "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "Pipfile", "Pipfile.lock", "poetry.lock", "uv.lock":
 		return EcosystemPython
 	case "shard.lock", "shard.yml":
 		return EcosystemCrystal
@@ -161,6 +163,11 @@ func IdentifyEcosystem(path string, fileName string) Ecosystem {
 		return EcosystemNuget
 	}
 
+	// python conda
+	if isConda(fileName) {
+		return EcosystemPython
+	}
+
 	if isExecutableBinary(fileName) {
 		log.Debug("skipping executable binary", "fileName", fileName)
 		return EcosystemUnknownBinary
@@ -169,6 +176,7 @@ func IdentifyEcosystem(path string, fileName string) Ecosystem {
 	if isSBOM(fileName) {
 		return EcosystemSBOM
 	}
+
 	return EcosystemUnknown
 }
 
@@ -184,7 +192,12 @@ func isExecutableBinary(fileName string) bool {
 
 	// ignore too large (500mb+) files
 	if fi.Size() > 500*1024*1024 {
-		log.Debugf("skipping too large file", "fileName", fileName, "size", fi.Size())
+		log.Debug("skipping too large file", "fileName", fileName, "size", fi.Size())
+		return false
+	}
+
+	return true
+}
 
 func isSBOM(fileName string) bool {
 	// Format support based on: https://spdx.dev/resources/use/#documents
@@ -198,6 +211,16 @@ func isSBOM(fileName string) bool {
 	return false
 }
 
+func isConda(fileName string) bool {
+	if !(strings.HasPrefix(fileName, "envs/") || strings.Contains(fileName, "/envs/")) {
+		return false
+	}
+
+	if filepath.Ext(fileName) != ".json" {
+		return false
+	}
+
+	if !strings.HasSuffix(filepath.Dir(fileName), "conda-meta") {
 		return false
 	}
 
@@ -241,22 +264,27 @@ func scannersForEcosystem(ecosystem Ecosystem) []RepoScanner {
 	case EcosystemNpm:
 		return []RepoScanner{
 			&ModuleNameScanner{},
-			//&scalibrRepoScanner{},
-			&TrivyScanner{},
+			NewWithFallbackScanner(&TrivyScanner{}, NewDefaultScalibrRepoScanner()),
 		}
 	case EcosystemGo:
-		return []RepoScanner{&ScalibrRepoScanner{}}
+		return []RepoScanner{NewDefaultScalibrRepoScanner()}
 	case EcosystemCrystal:
 		return []RepoScanner{
 			&CrystalShardScanner{},
-			&ScalibrRepoScanner{},
+			&scalibrRepoScanner{},
 		}
 	case EcosystemUnknownBinary:
 		return []RepoScanner{
 			&BinaryNameScanner{},
-			&ScalibrRepoScanner{},
+			NewDefaultScalibrRepoScanner(),
 		}
+	case EcosystemSBOM:
+		return []RepoScanner{NewSBOMScalibrRepoScanner()}
+	case EcosystemPython:
+		return []RepoScanner{NewDefaultScalibrRepoScanner()}
 	default:
-		return []RepoScanner{&TrivyScanner{}}
+		return []RepoScanner{
+			NewWithFallbackScanner(&TrivyScanner{}, NewDefaultScalibrRepoScanner()),
+		}
 	}
 }

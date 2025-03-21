@@ -13,6 +13,10 @@ func (s *ConfigRepoScanner) Id() string {
 	return "config"
 }
 
+func (s *ConfigRepoScanner) IsAvailable() bool {
+	return true
+}
+
 func (s *ConfigRepoScanner) Priority() int {
 	return 100
 }

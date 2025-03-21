@@ -11,6 +11,10 @@ func (s *BinaryNameScanner) Id() string {
 	return "binaryName"
 }
 
+func (s *BinaryNameScanner) IsAvailable() bool {
+	return true
+}
+
 func (s *BinaryNameScanner) Priority() int {
 	return 200
 }

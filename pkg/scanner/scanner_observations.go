@@ -19,6 +19,10 @@ func (s *BuildObservationsScanner) Id() string {
 	return "build-observations"
 }
 
+func (s *BuildObservationsScanner) IsAvailable() bool {
+	return true
+}
+
 func (s *BuildObservationsScanner) Priority() int {
 	return 1000
 }

@@ -15,6 +15,10 @@ func (s *CrystalShardScanner) Id() string {
 	return "crystalModule"
 }
 
+func (s *CrystalShardScanner) IsAvailable() bool {
+	return true
+}
+
 func (s *CrystalShardScanner) Priority() int {
 	return 200
 }

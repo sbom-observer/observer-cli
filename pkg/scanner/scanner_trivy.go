@@ -7,18 +7,41 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"time"
+
 	"sbom.observer/cli/pkg/cdxutil"
 	"sbom.observer/cli/pkg/execx"
 	"sbom.observer/cli/pkg/ids"
 	"sbom.observer/cli/pkg/log"
-	"time"
 )
 
 type TrivyScanner struct{}
 
 func (s *TrivyScanner) Id() string {
 	return "trivy"
+}
+
+func (s *TrivyScanner) IsAvailable() bool {
+	// resolve absolute path to trivy binary
+	trivyPath, err := exec.LookPath("trivy")
+	if err != nil {
+		return false
+	}
+
+	log.Debug("trivy path", "path", trivyPath)
+
+	// check if trivy binary is executable
+	info, err := os.Stat(trivyPath)
+	if err != nil {
+		return false
+	}
+	return info.Mode().Perm()&0111 != 0
+}
+
+func (s *TrivyScanner) LogInstructions() {
+	log.Warn("Trivy is not installed (found in the current PATH) and is the preferred scanner for the current ecosystem. Please install it with instructions from https://trivy.dev/latest/getting-started/installation/")
 }
 
 func (s *TrivyScanner) Priority() int {
@@ -46,6 +69,11 @@ func (s *TrivyScanner) Scan(target *ScanTarget) error {
 	bom, err := cdxutil.ParseCycloneDX(output)
 	if err != nil {
 		return fmt.Errorf("failed to parse CycloneDX SBOM: %w", err)
+	}
+
+	// remove properties from metadata
+	if bom.Metadata != nil && bom.Metadata.Component != nil {
+		bom.Metadata.Component.Properties = nil
 	}
 
 	// remove all properties from components
