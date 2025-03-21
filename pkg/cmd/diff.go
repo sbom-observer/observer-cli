@@ -50,12 +50,12 @@ func RunDiffCommand(cmd *cobra.Command, args []string) {
 
 	bomOne, err := cdxutil.ParseCycloneDX(fileOne)
 	if err != nil {
-		log.Fatalf("failed to parse %s. Error: %w", fileOne, err)
+		log.Fatalf("failed to parse %s. Error: %v", fileOne, err)
 	}
 
 	bomTwo, err := cdxutil.ParseCycloneDX(fileTwo)
 	if err != nil {
-		log.Fatalf("failed to parse %s. Error: %w", fileTwo, err)
+		log.Fatalf("failed to parse %s. Error: %v", fileTwo, err)
 	}
 
 	result := diffBOMs(bomOne, bomTwo)

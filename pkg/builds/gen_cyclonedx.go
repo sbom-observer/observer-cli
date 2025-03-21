@@ -73,6 +73,14 @@ func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.B
 		Version: config.Component.Version,
 	}
 
+	if config.Component.License != "" {
+		bom.Metadata.Component.Licenses = &cdx.Licenses{
+			{
+				License: &cdx.License{ID: config.Component.License},
+			},
+		}
+	}
+
 	if config.Supplier.Name != "" {
 		bom.Metadata.Supplier = &cdx.OrganizationalEntity{
 			Name: config.Supplier.Name,
@@ -80,8 +88,18 @@ func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.B
 		}
 	}
 
-	// TODO: metadata component license
-	// TODO: metadata authors
+	if config.Author.Contacts != nil {
+		for _, contact := range config.Author.Contacts {
+			if bom.Metadata.Authors == nil {
+				bom.Metadata.Authors = &[]cdx.OrganizationalContact{}
+			}
+			*bom.Metadata.Authors = append(*bom.Metadata.Authors, cdx.OrganizationalContact{
+				Name:  contact.Name,
+				Email: contact.Email,
+				Phone: contact.Phone,
+			})
+		}
+	}
 
 	// components
 	var components []cdx.Component
