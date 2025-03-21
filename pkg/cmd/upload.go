@@ -1,18 +1,20 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/spf13/cobra"
 	"sbom.observer/cli/pkg/client"
 	"sbom.observer/cli/pkg/log"
 )
 
 // uploadCmd represents the upload command
 var uploadCmd = &cobra.Command{
-	Use:   "upload <sbom>...",
-	Short: "Upload one or more attestations (SBOMs) to https://sbom.observer",
-	Long:  `Upload one or more attestations (SBOMs) to https://sbom.observer`,
-	Run:   UploadCommand,
+	Aliases: []string{"up"},
+	Use:     "upload <sbom>...",
+	Short:   "Upload one or more attestations (SBOMs) to https://sbom.observer",
+	Long:    `Upload one or more attestations (SBOMs) to https://sbom.observer`,
+	Run:     UploadCommand,
 }
 
 func init() {

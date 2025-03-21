@@ -22,32 +22,32 @@ import (
 	"sbom.observer/cli/pkg/log"
 )
 
-// repoCmd represents the repo command
-var repoCmd = &cobra.Command{
-	Aliases: []string{"repository"},
-	Use:     "repo",
-	Short:   "Create an SBOM from a source repository",
-	Long:    `Create an SBOM from a local source repository (or monorepo)`,
-	Run:     RunRepoCommand,
+// filesystemCmd represents the repo command
+var filesystemCmd = &cobra.Command{
+	Aliases: []string{"filesystem", "repo"},
+	Use:     "fs",
+	Short:   "Create an SBOM from a filesystem directory (source repository, including monorepos) or list of files",
+	Long:    "Create an SBOM from a filesystem directory (source repository, including monorepos) or list of files",
+	Run:     RunFilesystemCommand,
 	Args:    cobra.MinimumNArgs(1),
 }
 
 func init() {
-	rootCmd.AddCommand(repoCmd)
+	rootCmd.AddCommand(filesystemCmd)
 
 	// toggles
-	repoCmd.Flags().BoolP("upload", "u", false, "Upload the results to https://sbom.observer")
+	filesystemCmd.Flags().BoolP("upload", "u", false, "Upload the results to https://sbom.observer")
 
-	repoCmd.Flags().BoolP("recursive", "r", false, "Recursively scan subdirectories (short for --depth=1)")
-	repoCmd.Flags().Uint("depth", 1, "Recursively scan subdirectories down to max tree depth (e.g. monorepos)")
+	filesystemCmd.Flags().BoolP("recursive", "r", false, "Recursively scan subdirectories (short for --depth=1)")
+	filesystemCmd.Flags().Uint("depth", 1, "Recursively scan subdirectories down to max tree depth (e.g. monorepos)")
 
 	// output
-	repoCmd.Flags().StringP("output", "o", "", "Output directory for the results (default: stdout)")
-	repoCmd.Flags().StringP("merge", "m", "", "Merge (filename) the results into a single BOM")
+	filesystemCmd.Flags().StringP("output", "o", "", "Output directory for the results (default: stdout)")
+	filesystemCmd.Flags().StringP("merge", "m", "", "Merge (filename) the results into a single BOM")
 	//repoCmd.Flags().Bool("super", false, "Merge the results with a super BOM")
 }
 
-func RunRepoCommand(cmd *cobra.Command, args []string) {
+func RunFilesystemCommand(cmd *cobra.Command, args []string) {
 	var err error
 
 	flagUpload, _ := cmd.Flags().GetBool("upload")
