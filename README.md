@@ -101,10 +101,9 @@ For mixed-language projects, the `fs` command will create multiple SBOMs during 
 
 > [!IMPORTANT]
 > Currently the scanner can only resolve observed dependencies when they are installed on the build machine using the package manager of the OS.
-> **Initially only apt and rpm based linux systems are supported**, but we plan to add support for more package managers in the future. We also plan support for Windows and FreeBSD in the future.
-
-> [!IMPORTANT]
-> The build-observer process requires root privileges to load the eBPF program into the kernel. Use the `-u` flag to drop privileges before executing the build.
+> **Initially only apt and rpm based linux systems are supported**, but we plan to add support for more package managers in the future. 
+>
+>We also plan support for Windows and FreeBSD in the future.
 
 Example of creating an SBOM for a C/C++ project in a single step:
 
@@ -112,7 +111,11 @@ Example of creating an SBOM for a C/C++ project in a single step:
 ~/src/nginx-1.26.0 $ sudo observer build -u cicd -b nginx.cdx.json -- make
 ```
 
-This will create a CycloneDX BOM in the file `nginx.cdx.json` that includes all the dependencies of the project.
+This will create a CycloneDX BOM `nginx.cdx.json` that includes all the dependencies of the project.
+
+> [!IMPORTANT]
+> The build-observer process requires root privileges to load the eBPF program into the kernel. Use the `-u` flag to drop privileges before executing the build.
+
 
 Example of observering the build and creating the SBOM in a separate step:
 
@@ -126,6 +129,7 @@ INFO buildops: parsing build observations file build-observations.out
 INFO wrote CycloneDX BOM to ./sboms/nginx-1.26.0.bom.xml
 ...
 ```
+
 
 Example of a mixed project:
 ```bash
@@ -149,9 +153,9 @@ This includes:
 - Compilers, assemblers, linkers, etc
 - Code generators, transformers, etc
 
-There have been a number of supply chain vulnerabilities in compilers and standards libraries in recent years. We think it is important to include these in the SBOM to help with identifying and mitigating supply chain risks.
+There have been a number of supply chain vulnerabilities in compilers and standard libraries in recent years. We think it is important to include these in the SBOM to help with identifying and mitigating supply chain risks.
 
-Dependencies that are not loaded at runtime have the `scope: excluded` field set in the CycloneDX BOM, making it easy to identify and filter them out.
+Dependencies that are not loaded at runtime have the `scope: excluded` field set in the CycloneDX BOM, making it easy to identify and filter them out (if needed).
 
 ## Kubernetes BOM generation
 
