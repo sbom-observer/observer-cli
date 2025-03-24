@@ -73,7 +73,7 @@ sboms:
   - id: "cyclonedx"
     artifacts: binary
     documents:
-      - "${artifact}.cdx.json"
+      - "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.cdx.json"
     cmd: 'observer'
     args: [ "fs", "-m", "$document", "{{ .ArtifactPath | abs | dir }}/observer.yml", "{{ .ArtifactPath | abs }}" ]
 
