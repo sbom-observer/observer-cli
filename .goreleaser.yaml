@@ -11,6 +11,7 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 
+
 builds:
   - id: 'observer'
     binary: 'observer'
@@ -21,6 +22,9 @@ builds:
       - windows
       - darwin
     mod_timestamp: "{{ .CommitTimestamp }}"
+    hooks:
+      post:
+        - cp observer.yml "{{dir .Path}}/observer.yml"
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate }} -X main.treeState={{ .IsGitDirty }}
 
@@ -67,11 +71,11 @@ nfpms:
 
 sboms:
   - id: "cyclonedx"
-    artifacts: any
+    artifacts: binary
     documents:
-      - "observer.sbom.json"
-    cmd: 'trivy'
-    args: [ "repo", "--skip-java-db-update", "--skip-dirs", "testdata", "-f", "cyclonedx", "-o", "$document", ".." ]
+      - "${artifact}.cdx.json"
+    cmd: 'observer'
+    args: [ "fs", "-m", "$document", "{{ .ArtifactPath | abs | dir }}/observer.yml", "{{ .ArtifactPath | abs }}" ]
 
 changelog:
   sort: asc
