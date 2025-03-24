@@ -69,14 +69,15 @@ func RunFilesystemCommand(cmd *cobra.Command, args []string) {
 	{
 		pathToTarget := map[string]*scanner.ScanTarget{}
 		for _, arg := range args {
+			log.Debugf("finding scan targets for %s", arg)
 			ts, err := scanner.FindScanTargets(arg, flagDepth)
 			if err != nil {
 				log.Fatal("failed to find scan targets", "err", err)
 			}
 
 			if len(ts) == 0 {
-				log.Infof("No targets found in %s", args[0])
-				os.Exit(0)
+				log.Debugf("No targets found in %s", arg)
+				continue
 			}
 
 			for path, target := range ts {
@@ -103,6 +104,10 @@ func RunFilesystemCommand(cmd *cobra.Command, args []string) {
 	// TODO: remove
 	for _, target := range targets {
 		log.Debugf("found target %s -> %v", target.Path, target.Files)
+	}
+
+	if len(targets) == 0 {
+		log.Fatal("no targets found")
 	}
 
 	// scan targets

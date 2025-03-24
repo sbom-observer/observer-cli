@@ -31,7 +31,6 @@ dist/
 /scratches/
 /observer-linux
 .DS_Store
-/observer.yml
 fanal
 Vagrantfile
 create-and-diff.scratch

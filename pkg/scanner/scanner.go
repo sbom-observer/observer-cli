@@ -101,7 +101,8 @@ func FindScanTargets(initialTarget string, maxDepth uint) (map[string]*ScanTarge
 		directoryPath := filepath.Dir(currentPath)
 
 		// check if it's a "file-of-interest"
-		ecosystem := IdentifyEcosystem(relativePath, file.Name())
+		ecosystem := IdentifyEcosystem(currentPath, relativePath, file.Name())
+		log.Debug("identified ecosystem", "absolutePath", currentPath, "relativePath", relativePath, "fileName", file.Name(), "ecosystem", ecosystem)
 
 		if ecosystem != EcosystemUnknown {
 			target, found := targets[directoryPath]
@@ -121,7 +122,7 @@ func FindScanTargets(initialTarget string, maxDepth uint) (map[string]*ScanTarge
 	return targets, err
 }
 
-func IdentifyEcosystem(path string, fileName string) Ecosystem {
+func IdentifyEcosystem(absolutePath string, relativePath string, fileName string) Ecosystem {
 	switch fileName {
 	case "Gemfile.lock":
 		return EcosystemRuby
@@ -164,12 +165,11 @@ func IdentifyEcosystem(path string, fileName string) Ecosystem {
 	}
 
 	// python conda
-	if isConda(fileName) {
+	if isConda(absolutePath) {
 		return EcosystemPython
 	}
 
-	if isExecutableBinary(fileName) {
-		log.Debug("skipping executable binary", "fileName", fileName)
+	if isExecutableBinary(absolutePath) {
 		return EcosystemUnknownBinary
 	}
 
