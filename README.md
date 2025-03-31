@@ -6,9 +6,8 @@ This tool is primarily a *meta* scanner, meaning that in most cases it delegates
 
 We aim to keep an opinionated list of scanners that we believe are the most accurate and useful per ecosystem (e.g. Go, JavaScript, Python, Java, etc) or type of scan target (e.g. filesystem, container image, k8s cluster etc).
 
-The tool currently delegates the scanning to [osv-scalibr](https://github.com/google/osv-scalibr) (as a library) and [Trivy](https://github.com/aquasecurity/trivy) (needs to be installed separately).
-
-The tool is designed to be extensible, so we may add support for other scanners as well.
+The tool currently delegates the scanning to [osv-scalibr](https://github.com/google/osv-scalibr) (as a library) and [Trivy](https://github.com/aquasecurity/trivy) (needs to be installed separately). The tool is designed to be extensible, so we may add support for other scanners as well, 
+if they provide better accuracy or support for some ecosystems.
 
 ## Usage
 
@@ -63,7 +62,7 @@ For monorepos, the `fs` command will scan each component in the repository and c
 
 When there is multiple components in the _same_ folder (e.g. go.mod + package-lock.json), the scanner will merge the SBOMs into a single file.
 
-## SBOM Metadata files
+## Metadata
 
 You can configure the SBOM metadata fields (root component, supplier, etc) by adding a `observer.yaml` file in the root of the repository (or the root of each component in a monorepo).
 
@@ -85,13 +84,37 @@ supplier:
           phone: "123"
 ```
 
+## Examples
+
+### Example: Scanning a npm project:
+
+The `fs` command will scan the current directory and all subdirectories, and create a CycloneDX BOM for each component. The ecosystem will be detected automatically.
+
+```bash
+~/src/webapp $ sudo observer fs -m my-app.cdx.json .
+```
+
+### Example: Scanning a Go project:
+
+Scanning both the go.mod and the compiled binary will result in a more accurate SBOM, as the dependency resolver will be able to resolve the dependencies in the compiled binary.
+```bash
+~/src/my-go-app $ sudo observer fs -m my-app.cdx.json ./dist/my-app-binary
+```
+
+### Example: Scanning a docker image:
+```bash
+~/src/my-app $ sudo observer image -o my-app.cdx.json hello-world:latest
+```
+
+
 ## Creating SBOMs for C/C++ projects (and mixed-language projects)
 
-Creating accurate SBOMs for C/C++ projects is challenging, because the build process often involves multiple steps and tools, and the dependencies are often installed as OS packages, and not via an ecosystem package manager.
+Creating accurate SBOMs for C/C++ projects is challenging, because the build process often involves multiple steps and tools, and the dependencies are often installed as OS packages, not via an ecosystem package manager.
 
-To address this, we have created a library called [build-observer](https://github.com/sbom-observer/build-observer) that can watch the build process and create a log of all files that are read, written or executed during the build.
+To address this, we have created a library called [build-observer](https://github.com/sbom-observer/build-observer) that can watch the build process and create a log of all files that are _read_ or _executed_ during the build.
 
-This log can then be used by the `observer` tool to create an SBOM using dependency information from OS package manager.
+This log can then be used by `observer` CLI to create an SBOM using dependency information from OS package manager. 
+The tool can also report on any files that are _read_ or _executed_ but **not** found in the OS package manager, which can help identify if the build process is using sideloaded dependencies or other non-standard tools.
 
 Using a combination of [build-observer](https://github.com/sbom-observer/build-observer) and the `fs` command, you can create accurate build-time SBOMs for C/C++ projects. 
 
