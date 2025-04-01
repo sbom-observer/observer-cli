@@ -161,6 +161,11 @@ NextInventory:
 		if p := toPURL(i); p != nil {
 			pkg.PackageURL = p.String()
 			pkg.BOMRef = pkg.PackageURL
+
+			// fixup: scalibr doesn't set the group for maven packages
+			if pkg.Group == "" && p.Namespace != p.Name {
+				pkg.Group = p.Namespace
+			}
 		}
 
 		if cpes := extractCPEs(i); len(cpes) > 0 {

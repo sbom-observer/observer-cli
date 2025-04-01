@@ -23,6 +23,7 @@ const EcosystemNpm Ecosystem = "npm"
 const EcosystemNuget Ecosystem = "nuget"
 const EcosystemPython Ecosystem = "python"
 const EcosystemJava Ecosystem = "java"
+const EcosystemJavaBinary Ecosystem = "java-binary"
 const EcosystemRuby Ecosystem = "ruby"
 const EcosystemPhp Ecosystem = "php"
 const EcosystemRust Ecosystem = "rust"
@@ -158,9 +159,17 @@ func IdentifyEcosystem(absolutePath string, relativePath string, fileName string
 		return EcosystemBuildObserver
 	}
 
+	fileExtension := filepath.Ext(fileName)
+
+	// java binary
+	for _, ext := range []string{".jar", ".war", ".ear", ".jmod", ".par", ".sar", ".jpi", ".hpi", ".lpkg", ".nar"} {
+		if fileExtension == ext {
+			return EcosystemJavaBinary
+		}
+	}
+
 	// nuget
-	ext := filepath.Ext(fileName)
-	if ext == ".csproj" || ext == ".vbproj" || ext == "*.fsproj" {
+	if fileExtension == ".csproj" || fileExtension == ".vbproj" || fileExtension == ".fsproj" {
 		return EcosystemNuget
 	}
 
@@ -273,6 +282,8 @@ func scannersForEcosystem(ecosystem Ecosystem) []RepoScanner {
 			&CrystalShardScanner{},
 			&scalibrRepoScanner{},
 		}
+	case EcosystemJavaBinary:
+		return []RepoScanner{NewDefaultScalibrRepoScanner()}
 	case EcosystemUnknownBinary:
 		return []RepoScanner{
 			&BinaryNameScanner{},
