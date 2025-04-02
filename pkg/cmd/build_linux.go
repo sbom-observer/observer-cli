@@ -11,11 +11,11 @@ import (
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
 	"github.com/sbom-observer/build-observer/pkg/traceopens"
+	"github.com/sbom-observer/observer-cli/pkg/builds"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/scanner"
+	"github.com/sbom-observer/observer-cli/pkg/types"
 	"github.com/spf13/cobra"
-	"sbom.observer/cli/pkg/builds"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/scanner"
-	"sbom.observer/cli/pkg/types"
 )
 
 // buildCmd represents the diff command

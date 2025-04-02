@@ -1,17 +1,18 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"os"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/types"
+
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/types"
+	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "observer",
-	Short: "Create SBOMs from source code or container images",
-	Long: `Create SBOMs from source code or container images`,
+	Use:     "observer",
+	Short:   "Create SBOMs from source code or container images",
+	Long:    `Create SBOMs from source code or container images`,
 	Version: types.Version,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// setup logging

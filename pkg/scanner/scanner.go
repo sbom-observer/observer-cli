@@ -11,9 +11,9 @@ import (
 	"github.com/google/osv-scalibr/extractor/filesystem/simplefileapi"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/types"
 	"golang.org/x/exp/maps"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/types"
 )
 
 type Ecosystem string

@@ -4,8 +4,8 @@ import (
 	"slices"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/types"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/types"
 )
 
 // DestructiveMergeSBOMs merges multiple SBOMs into a single SBOM, inputs may be modified and should be considered invalid after this call

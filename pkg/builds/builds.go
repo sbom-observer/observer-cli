@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/sbom-observer/build-observer/pkg/types"
+	"github.com/sbom-observer/observer-cli/pkg/licenses"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/ospkgs"
+	"github.com/sbom-observer/observer-cli/pkg/ospkgs/rpm"
 	"golang.org/x/exp/maps"
-	"sbom.observer/cli/pkg/licenses"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/ospkgs"
-	"sbom.observer/cli/pkg/ospkgs/rpm"
 )
 
 type Scope string

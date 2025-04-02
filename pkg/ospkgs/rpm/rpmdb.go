@@ -12,9 +12,9 @@ import (
 	"slices"
 
 	rpmdb "github.com/erikvarga/go-rpmdb/pkg"
-	"sbom.observer/cli/pkg/licenses"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/ospkgs"
+	"github.com/sbom-observer/observer-cli/pkg/licenses"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/ospkgs"
 )
 
 var RpmDbPaths = []string{

@@ -3,9 +3,9 @@ package cmd
 import (
 	"os"
 
+	"github.com/sbom-observer/observer-cli/pkg/client"
+	"github.com/sbom-observer/observer-cli/pkg/log"
 	"github.com/spf13/cobra"
-	"sbom.observer/cli/pkg/client"
-	"sbom.observer/cli/pkg/log"
 )
 
 // uploadCmd represents the upload command

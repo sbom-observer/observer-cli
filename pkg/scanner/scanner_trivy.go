@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"sbom.observer/cli/pkg/cdxutil"
-	"sbom.observer/cli/pkg/execx"
-	"sbom.observer/cli/pkg/ids"
-	"sbom.observer/cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/cdxutil"
+	"github.com/sbom-observer/observer-cli/pkg/execx"
+	"github.com/sbom-observer/observer-cli/pkg/ids"
+	"github.com/sbom-observer/observer-cli/pkg/log"
 )
 
 type TrivyScanner struct{}

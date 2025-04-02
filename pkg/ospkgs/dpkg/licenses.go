@@ -5,8 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sbom.observer/cli/pkg/licenses"
 	"strings"
+
+	"github.com/sbom-observer/observer-cli/pkg/licenses"
 )
 
 var (

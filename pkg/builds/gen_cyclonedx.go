@@ -9,10 +9,10 @@ import (
 	"time"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
-	"sbom.observer/cli/pkg/ids"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/ospkgs"
-	"sbom.observer/cli/pkg/types"
+	"github.com/sbom-observer/observer-cli/pkg/ids"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/ospkgs"
+	"github.com/sbom-observer/observer-cli/pkg/types"
 )
 
 // https://json-schema.org/understanding-json-schema/reference/string.html#dates-and-times

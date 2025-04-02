@@ -7,12 +7,12 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/sbom-observer/observer-cli/pkg/licenses"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/ospkgs"
+	"github.com/sbom-observer/observer-cli/pkg/ospkgs/dpkg"
+	"github.com/sbom-observer/observer-cli/pkg/ospkgs/rpm"
 	"golang.org/x/exp/maps"
-	"sbom.observer/cli/pkg/licenses"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/ospkgs"
-	"sbom.observer/cli/pkg/ospkgs/dpkg"
-	"sbom.observer/cli/pkg/ospkgs/rpm"
 )
 
 // TODO: move package

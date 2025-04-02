@@ -19,8 +19,8 @@ import (
 	"github.com/google/osv-scalibr/plugin"
 	"github.com/google/osv-scalibr/purl"
 	"github.com/google/uuid"
-	"sbom.observer/cli/pkg/log"
-	localextractors "sbom.observer/cli/pkg/scanner/scalibr"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	localextractors "github.com/sbom-observer/observer-cli/pkg/scanner/scalibr"
 )
 
 type scalibrRepoScanner struct {

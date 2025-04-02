@@ -6,11 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"sbom.observer/cli/pkg/builds"
-	"sbom.observer/cli/pkg/types"
+	"github.com/sbom-observer/observer-cli/pkg/builds"
+	"github.com/sbom-observer/observer-cli/pkg/types"
 
-	"sbom.observer/cli/pkg/log"
-		cdx "github.com/CycloneDX/cyclonedx-go"
+	cdx "github.com/CycloneDX/cyclonedx-go"
+	"github.com/sbom-observer/observer-cli/pkg/log"
 )
 
 type BuildObservationsScanner struct{}
@@ -85,7 +85,6 @@ func ScanObservations(config types.ScanConfig, observations builds.BuildObservat
 			log.Warn("unattributed file", "file", file)
 		}
 	}
-
 
 	return bom, nil
 }

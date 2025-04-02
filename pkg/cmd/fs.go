@@ -13,13 +13,13 @@ import (
 	"text/template"
 	"time"
 
-	"sbom.observer/cli/pkg/cdxutil"
-	"sbom.observer/cli/pkg/scanner"
+	"github.com/sbom-observer/observer-cli/pkg/cdxutil"
+	"github.com/sbom-observer/observer-cli/pkg/scanner"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
+	"github.com/sbom-observer/observer-cli/pkg/client"
+	"github.com/sbom-observer/observer-cli/pkg/log"
 	"github.com/spf13/cobra"
-	"sbom.observer/cli/pkg/client"
-	"sbom.observer/cli/pkg/log"
 )
 
 // filesystemCmd represents the repo command

@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"sbom.observer/cli/pkg/log"
+
+	"github.com/sbom-observer/observer-cli/pkg/log"
 )
 
 type ModuleNameScanner struct{}

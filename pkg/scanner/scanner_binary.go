@@ -2,7 +2,8 @@ package scanner
 
 import (
 	"path/filepath"
-	"sbom.observer/cli/pkg/log"
+
+	"github.com/sbom-observer/observer-cli/pkg/log"
 )
 
 type BinaryNameScanner struct{}

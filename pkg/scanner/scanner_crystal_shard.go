@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sbom-observer/observer-cli/pkg/log"
 	"gopkg.in/yaml.v3"
-	"sbom.observer/cli/pkg/log"
 )
 
 // CrystalShardScanner scans for Crystal shard.yml files and extracts the target's name and version.

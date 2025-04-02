@@ -3,8 +3,8 @@ package scanner
 import (
 	"path/filepath"
 
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/types"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/types"
 )
 
 type ConfigRepoScanner struct{}

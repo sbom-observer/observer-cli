@@ -2,14 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"path"
-	"sbom.observer/cli/pkg/client"
-	"sbom.observer/cli/pkg/execx"
-	"sbom.observer/cli/pkg/log"
 	"time"
+
+	"github.com/sbom-observer/observer-cli/pkg/client"
+	"github.com/sbom-observer/observer-cli/pkg/execx"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/spf13/cobra"
 )
 
 // imageCmd represents the image command

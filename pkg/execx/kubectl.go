@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sbom.observer/cli/pkg/log"
 	"strings"
+
+	"github.com/sbom-observer/observer-cli/pkg/log"
 )
 
 func Kubectl(args ...string) (string, error) {

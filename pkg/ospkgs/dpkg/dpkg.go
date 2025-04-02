@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sbom-observer/observer-cli/pkg/licenses"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/ospkgs"
 	"golang.org/x/exp/maps"
-	"sbom.observer/cli/pkg/licenses"
-	"sbom.observer/cli/pkg/log"
-	"sbom.observer/cli/pkg/ospkgs"
 )
 
 // dkpg package contains code to parse various /var/lib/dpkg/* file types and provide

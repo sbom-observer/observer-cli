@@ -1,6 +1,6 @@
 package scanner
 
-import "sbom.observer/cli/pkg/log"
+import "github.com/sbom-observer/observer-cli/pkg/log"
 
 type withFallbackScanner struct {
 	SelectedScanner RepoScanner

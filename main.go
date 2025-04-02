@@ -1,8 +1,8 @@
 package main
 
 import (
-	"sbom.observer/cli/pkg/cmd"
-	"sbom.observer/cli/pkg/types"
+	"github.com/sbom-observer/observer-cli/pkg/cmd"
+	"github.com/sbom-observer/observer-cli/pkg/types"
 )
 
 var (

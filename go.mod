@@ -1,4 +1,4 @@
-module sbom.observer/cli
+module github.com/sbom-observer/observer-cli
 
 go 1.23.5
 

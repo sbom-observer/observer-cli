@@ -3,15 +3,16 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"path"
-	"sbom.observer/cli/pkg/client"
-	"sbom.observer/cli/pkg/execx"
-	"sbom.observer/cli/pkg/k8s"
-	"sbom.observer/cli/pkg/log"
 	"strings"
 	"time"
+
+	"github.com/sbom-observer/observer-cli/pkg/client"
+	"github.com/sbom-observer/observer-cli/pkg/execx"
+	"github.com/sbom-observer/observer-cli/pkg/k8s"
+	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/spf13/cobra"
 )
 
 // k8sCmd represents the k8s command

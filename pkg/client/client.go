@@ -10,7 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sbom.observer/cli/pkg/log"
+
+	"github.com/sbom-observer/observer-cli/pkg/log"
 )
 
 type Config struct {

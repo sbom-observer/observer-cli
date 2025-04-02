@@ -9,12 +9,12 @@ import (
 	"sort"
 	"strings"
 
-	"sbom.observer/cli/pkg/cdxutil"
+	"github.com/sbom-observer/observer-cli/pkg/cdxutil"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/sbom-observer/observer-cli/pkg/log"
 	"github.com/spf13/cobra"
-	"sbom.observer/cli/pkg/log"
 )
 
 // diffCmd represents the diff command
