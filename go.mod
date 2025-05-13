@@ -6,6 +6,7 @@ toolchain go1.23.6
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.9.2
+	github.com/aquasecurity/table v1.10.0
 	github.com/charmbracelet/log v0.4.0
 	github.com/erikvarga/go-rpmdb v0.0.0-20240208180226-b97e041ef9af
 	github.com/google/go-containerregistry v0.20.3
@@ -13,6 +14,7 @@ require (
 	github.com/google/osv-scalibr v0.1.7
 	github.com/google/uuid v1.6.0
 	github.com/jedib0t/go-pretty/v6 v6.5.5
+	github.com/liamg/tml v0.7.0
 	github.com/package-url/packageurl-go v0.1.3
 	github.com/sbom-observer/build-observer v0.0.0-20250324152305-d691adeec11a
 	github.com/schollz/progressbar/v3 v3.14.3

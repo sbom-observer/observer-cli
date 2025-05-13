@@ -22,7 +22,7 @@
 go.work
 go.work.sum
 
-/TODO.txt
+/TODO*
 /scratch/
 observer*
 dist/
@@ -31,6 +31,7 @@ dist/
 /scratches/
 /observer-linux
 .DS_Store
-fanal
 Vagrantfile
-create-and-diff.scratch
+*.scratch
+tmp
+*.sh
