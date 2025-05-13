@@ -16,6 +16,7 @@ Usage:
   observer [command]
 
 Available Commands:
+  analyze     Analyze an SBOM using https://sbom.observer
   build       Observe a build process and optionally generate a CycloneDX SBOM
   completion  Generate the autocompletion script for the specified shell
   diff        Compare two SBOMs and show the differences
