@@ -1,0 +1,13 @@
+
+component:
+  type: application
+  name: observer
+  version: 0.0.0
+  description: SBOM generation and management utility
+  license: Apache 2.0
+supplier:
+  name: Bitfront AB
+  url: https://sbom.observer
+  contacts:
+    - name: Andreas Bielk
+      email: andreas@sbom.observer

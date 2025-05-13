@@ -8,7 +8,6 @@ before:
   hooks:
     - go mod tidy
     - go generate ./...
-    - sed -i "s/0.0.0/{{ .Version }}/" observer.yml
 
 builds:
   - id: 'observer'
@@ -23,6 +22,7 @@ builds:
     hooks:
       post:
         - cp observer.yml "{{dir .Path}}/observer.yml"
+        - sed -i "s/0.0.0/{{ .Version }}/" "{{dir .Path}}/observer.yml"
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate }} -X main.treeState={{ .IsGitDirty }}
 

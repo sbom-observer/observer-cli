@@ -24,7 +24,7 @@ go.work.sum
 
 /TODO*
 /scratch/
-observer*
+observer
 dist/
 .vagrant
 /build-observer
