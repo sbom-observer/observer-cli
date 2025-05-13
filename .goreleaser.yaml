@@ -6,11 +6,9 @@ project_name: observer
 
 before:
   hooks:
-    # You may remove this if you don't use go modules.
     - go mod tidy
-    # you may remove this if you don't need go generate
     - go generate ./...
-
+    - sed -i "s/0.0.0/{{ .Version }}/" observer.yml
 
 builds:
   - id: 'observer'
