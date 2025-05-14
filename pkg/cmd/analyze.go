@@ -65,7 +65,7 @@ func AnalyzeCommand(cmd *cobra.Command, args []string) {
 
 	// highlight limitations
 	if c.Config.Token == "" {
-		log.Printf("Create an account at https://sbom.observer to create custom policies and support to fail the build")
+		log.Printf("For custom policies with the possibility to fail the build, create an account at https://sbom.observer")
 	}
 
 	// check any violation should fail the build
