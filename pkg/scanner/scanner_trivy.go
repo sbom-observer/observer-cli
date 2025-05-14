@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/sbom-observer/observer-cli/pkg/cdxutil"
@@ -32,11 +33,17 @@ func (s *TrivyScanner) IsAvailable() bool {
 
 	log.Debug("trivy path", "path", trivyPath)
 
-	// check if trivy binary is executable
 	info, err := os.Stat(trivyPath)
 	if err != nil {
 		return false
 	}
+
+	// on windows, the executable bit is not set, so just check if the file is a regular file
+	if runtime.GOOS == "windows" {
+		return info.Mode().IsRegular()
+	}
+
+	// check file binary is executable
 	return info.Mode().Perm()&0111 != 0
 }
 
