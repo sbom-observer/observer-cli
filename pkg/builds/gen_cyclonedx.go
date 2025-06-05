@@ -1,14 +1,11 @@
 package builds
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"io"
-	"os"
 	"time"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
+	"github.com/sbom-observer/observer-cli/pkg/files"
 	"github.com/sbom-observer/observer-cli/pkg/ids"
 	"github.com/sbom-observer/observer-cli/pkg/log"
 	"github.com/sbom-observer/observer-cli/pkg/ospkgs"
@@ -175,7 +172,7 @@ func GenerateCycloneDX(deps *BuildDependencies, config types.ScanConfig) (*cdx.B
 
 		var subComponents []cdx.Component
 		for _, file := range dep.Files {
-			fileHash, err := HashFileSha256(file)
+			fileHash, err := files.HashFileSha256(file)
 			if err != nil {
 				log.Error("failed to hash file", "file", file, "error", err)
 				continue
@@ -284,22 +281,6 @@ func purlForPackage(dep Package) string {
 	}
 
 	return fmt.Sprintf("pkg:generic/%s@%s", dep.Name, dep.Version)
-}
-
-// HashFileSha256 calculates the SHA-256 hash of a file
-func HashFileSha256(filePath string) (string, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func deduplicate[T comparable](sliceList []T) []T {

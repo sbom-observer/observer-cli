@@ -35,3 +35,4 @@ Vagrantfile
 *.scratch
 tmp
 *.sh
+test.json

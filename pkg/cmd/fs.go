@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/sbom-observer/observer-cli/pkg/cdxutil"
+	"github.com/sbom-observer/observer-cli/pkg/files"
 	"github.com/sbom-observer/observer-cli/pkg/scanner"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
@@ -41,6 +42,9 @@ func init() {
 	filesystemCmd.Flags().BoolP("recursive", "r", false, "Recursively scan subdirectories (short for --depth=1)")
 	filesystemCmd.Flags().Uint("depth", 1, "Recursively scan subdirectories down to max tree depth (e.g. monorepos)")
 
+	// artifacts
+	filesystemCmd.Flags().StringArrayP("artifacts", "a", []string{}, "Artifacts that makes up the software described by the SBOM")
+
 	// output
 	filesystemCmd.Flags().StringP("output", "o", "", "Output directory for the results (default: stdout)")
 	filesystemCmd.Flags().StringP("merge", "m", "", "Merge (filename) the results into a single BOM")
@@ -58,6 +62,7 @@ func RunFilesystemCommand(cmd *cobra.Command, args []string) {
 
 	flagOutput, _ := cmd.Flags().GetString("output")
 	flagMerge, _ := cmd.Flags().GetString("merge")
+	flagArtifacts, _ := cmd.Flags().GetStringArray("artifacts")
 	// TODO: load config from args[0]
 
 	if len(args) < 1 {
@@ -187,6 +192,31 @@ func RunFilesystemCommand(cmd *cobra.Command, args []string) {
 
 		log.Debugf("merged %d BOMs to %s %s", len(boms), merged.Metadata.Component.Name, merged.Metadata.Component.Version)
 
+		// add artifacts to the merged BOM
+		if len(flagArtifacts) > 0 {
+			artifacts, err := scanArtifacts(flagArtifacts)
+			if err != nil {
+				log.Fatal("failed to scan artifacts", "err", err)
+			}
+
+			log.Debugf("adding %d artifacts to merged BOM", len(artifacts))
+
+			if len(artifacts) >= 0 {
+				if merged.Metadata.Component == nil {
+					log.Fatal("failed to add artifacts to merged BOM, the BOM is missing a root component", "err", err)
+				}
+
+				if merged.Metadata.Component.Components == nil {
+					merged.Metadata.Component.Components = &[]cdx.Component{}
+				}
+
+				*merged.Metadata.Component.Components = append(*merged.Metadata.Component.Components, artifacts...)
+			} else {
+				log.Debug("no artifacts found")
+			}
+		}
+
+		// output merged BOM
 		outputFilename := flagMerge
 
 		log.Debugf("writing SBOM to %s", outputFilename)
@@ -338,4 +368,49 @@ func isDirectory(filename string) bool {
 	}
 	// Check if the FileMode is a directory
 	return fileInfo.IsDir()
+}
+
+func scanArtifacts(artifacts []string) ([]cdx.Component, error) {
+	var components []cdx.Component
+
+	for _, artifact := range artifacts {
+		artifactPaths := strings.Split(artifact, " ")
+
+		for _, path := range artifactPaths {
+			path = strings.TrimSpace(path)
+
+			// Check if file exists
+			fileInfo, err := os.Stat(path)
+			if err != nil {
+				// skip files that don't exist
+				continue
+			}
+
+			if fileInfo.IsDir() {
+				// skip directories
+				continue
+			}
+
+			hash, err := files.HashFileSha256(path)
+			if err != nil {
+				return nil, fmt.Errorf("failed to hash artifact file: %w", err)
+			}
+
+			// Create component for this artifact
+			component := cdx.Component{
+				Type: cdx.ComponentTypeFile,
+				Name: filepath.Base(path),
+				Hashes: &[]cdx.Hash{
+					{
+						Algorithm: cdx.HashAlgoSHA1,
+						Value:     hash,
+					},
+				},
+			}
+
+			components = append(components, component)
+		}
+	}
+
+	return components, nil
 }
