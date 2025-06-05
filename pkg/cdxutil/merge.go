@@ -43,71 +43,31 @@ func DestructiveMergeSBOMs(config types.ScanConfig, results []*cdx.BOM) (*cdx.BO
 	if config.Component.Description != "" {
 		merged.Metadata.Component.Description = config.Component.Description
 	}
-	if config.Component.License != "" {
-		merged.Metadata.Component.Licenses = &cdx.Licenses{
-			{
-				License: &cdx.License{
-					ID: config.Component.License,
-				},
-			},
-		}
+	if config.Component.Licenses != nil {
+		merged.Metadata.Component.Licenses = config.Component.Licenses
+	}
+	if config.Component.Manufacturer != nil {
+		merged.Metadata.Component.Manufacturer = config.Component.Manufacturer
+	}
+	if config.Component.Supplier != nil {
+		merged.Metadata.Component.Supplier = config.Component.Supplier
 	}
 
 	// author
 	if config.Author.Name != "" {
-		merged.Metadata.Authors = &[]cdx.OrganizationalContact{{
-			Name: config.Author.Name,
-		}}
-	}
-
-	if len(config.Author.Contacts) > 0 {
-		if merged.Metadata.Authors == nil {
-			merged.Metadata.Authors = &[]cdx.OrganizationalContact{}
-		}
-
-		for _, contact := range config.Author.Contacts {
-			*merged.Metadata.Authors = append(*merged.Metadata.Authors, cdx.OrganizationalContact{
-				Name:  contact.Name,
-				Email: contact.Email,
-				Phone: contact.Phone,
-			})
+		merged.Metadata.Authors = &[]cdx.OrganizationalContact{
+			config.Author,
 		}
 	}
 
 	// supplier
 	if config.Supplier.Name != "" {
-		merged.Metadata.Supplier = &cdx.OrganizationalEntity{
-			Name: config.Supplier.Name,
-			URL:  &[]string{config.Supplier.URL},
-		}
-		if len(config.Supplier.Contacts) > 0 {
-			merged.Metadata.Supplier.Contact = &[]cdx.OrganizationalContact{}
-			for _, contact := range config.Supplier.Contacts {
-				*merged.Metadata.Supplier.Contact = append(*merged.Metadata.Supplier.Contact, cdx.OrganizationalContact{
-					Name:  contact.Name,
-					Email: contact.Email,
-					Phone: contact.Phone,
-				})
-			}
-		}
+		merged.Metadata.Supplier = &config.Supplier
 	}
 
 	// manufacturer
 	if config.Manufacturer.Name != "" {
-		merged.Metadata.Supplier = &cdx.OrganizationalEntity{
-			Name: config.Manufacturer.Name,
-			URL:  &[]string{config.Manufacturer.URL},
-		}
-		if len(config.Manufacturer.Contacts) > 0 {
-			merged.Metadata.Supplier.Contact = &[]cdx.OrganizationalContact{}
-			for _, contact := range config.Manufacturer.Contacts {
-				*merged.Metadata.Supplier.Contact = append(*merged.Metadata.Supplier.Contact, cdx.OrganizationalContact{
-					Name:  contact.Name,
-					Email: contact.Email,
-					Phone: contact.Phone,
-				})
-			}
-		}
+		merged.Metadata.Manufacturer = &config.Manufacturer
 	}
 
 	// add 'observer' tool if missing

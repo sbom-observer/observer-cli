@@ -1,0 +1,22 @@
+supplier:
+  name: SBOM Supplier
+  url:
+    - https://sbom.supplier.com
+manufacturer:
+  name: SBOM Manufacturer
+  url:
+    - https://sbom.manufacturer.com
+component:
+  type: firmware
+  name: custom-multi-app
+  group: custom-multi-app-group
+  version: 9.9.9
+  manufacturer:
+    name: Manufacturer 1
+    url:
+      - https://manufacturer1.com
+      - https://manufacturer2.com
+  supplier:
+    name: Supplier 1
+    url:
+      - https://supplier1.com
