@@ -1,6 +1,7 @@
 supplier:
   name: Bitfront AB
-  url: https://sbom.observer
+  url:
+    - https://sbom.observer
 component:
   name: custom-multi-app
   group: custom-multi-app-group

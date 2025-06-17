@@ -1,0 +1,7 @@
+supplier:
+  name: Vendor 1
+component:
+  bomref: pkg:/generic/vendored-library-1@1.0.0
+  type: library
+  name: vendored-library-1
+  version: 1.0.0

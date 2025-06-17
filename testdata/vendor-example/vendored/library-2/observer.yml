@@ -1,0 +1,6 @@
+supplier:
+  name: Vendor 2
+component:
+  name: vendored-library-2
+  version: 2.0.0
+  type: library

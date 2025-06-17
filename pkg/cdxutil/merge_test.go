@@ -204,7 +204,7 @@ func TestMergeCycloneDX(t *testing.T) {
 	}
 
 	// Merge the BOMs
-	merged, err := mergeCycloneDX([]*cdx.BOM{bom1, bom2, bom3})
+	merged, err := mergeCycloneDX([]*cdx.BOM{bom1, bom2, bom3}, true)
 
 	// Basic assertions
 	assert.NoError(t, err)

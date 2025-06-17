@@ -20,6 +20,17 @@ func CreateFilesystemSBOM(paths []string, flagDepth uint, flagMerge bool, flagAr
 		log.Fatal("the path to a source repository is required as an argument")
 	}
 
+	for i := range paths {
+		// make sure the path is absolute
+		if !filepath.IsAbs(paths[i]) {
+			absPath, err := filepath.Abs(paths[i])
+			if err != nil {
+				log.Fatal("failed to get absolute path", "path", paths[i], "err", err)
+			}
+			paths[i] = absPath
+		}
+	}
+
 	// find targets
 	var targets []*scanner.ScanTarget
 	{
@@ -51,7 +62,7 @@ func CreateFilesystemSBOM(paths []string, flagDepth uint, flagMerge bool, flagAr
 			targets = append(targets, target)
 		}
 
-		// sort targets to make scanning is deterministic
+		// sort targets to make scanning be deterministic
 		sort.Slice(targets, func(i, j int) bool {
 			return len(targets[i].Path) < len(targets[j].Path)
 		})
@@ -87,7 +98,7 @@ func CreateFilesystemSBOM(paths []string, flagDepth uint, flagMerge bool, flagAr
 		// merge results and add metadata
 		log.Debugf("merging %d BOMs for target %s", len(target.Results), target.Path)
 
-		target.Merged, err = cdxutil.DestructiveMergeSBOMs(target.Config, target.Results)
+		target.Merged, err = cdxutil.DestructiveMergeSBOMs(target.Config, target.Results, true)
 		if err != nil {
 			log.Fatal("failed to merge SBOMs for target", "target", target.Path, "err", err)
 		}
@@ -122,7 +133,7 @@ func CreateFilesystemSBOM(paths []string, flagDepth uint, flagMerge bool, flagAr
 		}
 
 		// TODO: replace with an additive merge
-		merged, err := cdxutil.DestructiveMergeSBOMs(targetsToMerge[0].Config, boms)
+		merged, err := cdxutil.DestructiveMergeSBOMs(targetsToMerge[0].Config, boms, false)
 		if err != nil {
 			log.Fatal("failed to merge SBOMs for config", "config", targetsToMerge[0].Merged.Metadata.Component.Name, "err", err)
 		}

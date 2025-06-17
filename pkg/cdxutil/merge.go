@@ -1,6 +1,7 @@
 package cdxutil
 
 import (
+	"github.com/sbom-observer/observer-cli/pkg/ids"
 	"slices"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
@@ -9,9 +10,9 @@ import (
 )
 
 // DestructiveMergeSBOMs merges multiple SBOMs into a single SBOM, inputs may be modified and should be considered invalid after this call
-func DestructiveMergeSBOMs(config types.ScanConfig, results []*cdx.BOM) (*cdx.BOM, error) {
+func DestructiveMergeSBOMs(config types.ScanConfig, results []*cdx.BOM, mergeRootComponent bool) (*cdx.BOM, error) {
 	// merge components and dependencies
-	merged, err := mergeCycloneDX(results)
+	merged, err := mergeCycloneDX(results, mergeRootComponent)
 	if err != nil {
 		return nil, err
 	}
@@ -21,13 +22,18 @@ func DestructiveMergeSBOMs(config types.ScanConfig, results []*cdx.BOM) (*cdx.BO
 		merged = cdx.NewBOM()
 		merged.Metadata = &cdx.Metadata{
 			Component: &cdx.Component{
-				Type: cdx.ComponentTypeApplication,
+				BOMRef: ids.NextUUID(),
+				Type:   cdx.ComponentTypeApplication,
 			},
 		}
 		merged.Components = &[]cdx.Component{}
 	}
 
 	// set metadata from config
+	if config.Component.BOMRef != "" {
+		merged.Metadata.Component.BOMRef = config.Component.BOMRef
+	}
+
 	if config.Component.Type != "" {
 		merged.Metadata.Component.Type = cdx.ComponentType(config.Component.Type)
 	}
@@ -103,7 +109,7 @@ func DestructiveMergeSBOMs(config types.ScanConfig, results []*cdx.BOM) (*cdx.BO
 	}
 
 	// remove root component from components
-	if merged.Metadata != nil && merged.Metadata.Component != nil {
+	if merged.Metadata != nil && merged.Metadata.Component != nil && merged.Components != nil {
 		*merged.Components = slices.DeleteFunc(*merged.Components, func(component cdx.Component) bool {
 			return component.Name == merged.Metadata.Component.Name && component.Group == merged.Metadata.Component.Group && component.Version == merged.Metadata.Component.Version
 		})
@@ -113,7 +119,7 @@ func DestructiveMergeSBOMs(config types.ScanConfig, results []*cdx.BOM) (*cdx.BO
 }
 
 // mergeCycloneDX is very simplistic in that it only merges components and dependencies
-func mergeCycloneDX(boms []*cdx.BOM) (*cdx.BOM, error) {
+func mergeCycloneDX(boms []*cdx.BOM, mergeRootComponent bool) (*cdx.BOM, error) {
 	if len(boms) == 0 {
 		return nil, nil
 	}
@@ -148,36 +154,60 @@ func mergeCycloneDX(boms []*cdx.BOM) (*cdx.BOM, error) {
 		}
 	}
 
+	if merged.Components == nil {
+		merged.Components = &[]cdx.Component{}
+	}
+
+	if merged.Dependencies == nil {
+		merged.Dependencies = &[]cdx.Dependency{}
+	}
+
 	for _, bom := range boms[1:] {
-		components[bom.Metadata.Component.BOMRef] = merged.Metadata.Component.BOMRef
+		if mergeRootComponent {
+			// map the BOMRef of the root component to the *merged* BOMRef
+			components[bom.Metadata.Component.BOMRef] = merged.Metadata.Component.BOMRef
+		}
 
-		if merged.Components != nil {
-			for _, component := range *bom.Components {
-				_, found := components[component.BOMRef]
+		if !mergeRootComponent {
+			components[bom.Metadata.Component.BOMRef] = bom.Metadata.Component.BOMRef
+			*merged.Components = append(*merged.Components, *bom.Metadata.Component)
+			dep := dependencies[merged.Metadata.Component.BOMRef]
+			if dep == nil {
+				dep = &cdx.Dependency{
+					Ref:          merged.Metadata.Component.BOMRef,
+					Dependencies: &[]string{},
+				}
+				dependencies[merged.Metadata.Component.BOMRef] = dep
+				*merged.Dependencies = append(*merged.Dependencies, *dep)
+			}
+			*dep.Dependencies = append(*dep.Dependencies, bom.Metadata.Component.BOMRef)
+		}
 
-				// merge properties
-				if found && component.Properties != nil {
-					if idx := slices.IndexFunc(*merged.Components, func(c cdx.Component) bool {
-						return c.BOMRef == component.BOMRef
-					}); idx != -1 {
-						existingComponent := (*merged.Components)[idx]
-						if existingComponent.Properties == nil {
-							existingComponent.Properties = &[]cdx.Property{}
-						}
-						for _, property := range *component.Properties {
-							if !slices.ContainsFunc(*existingComponent.Properties, func(p cdx.Property) bool {
-								return p.Name == property.Name
-							}) {
-								*existingComponent.Properties = append(*existingComponent.Properties, property)
-							}
+		for _, component := range *bom.Components {
+			_, found := components[component.BOMRef]
+
+			// merge properties
+			if found && component.Properties != nil {
+				if idx := slices.IndexFunc(*merged.Components, func(c cdx.Component) bool {
+					return c.BOMRef == component.BOMRef
+				}); idx != -1 {
+					existingComponent := (*merged.Components)[idx]
+					if existingComponent.Properties == nil {
+						existingComponent.Properties = &[]cdx.Property{}
+					}
+					for _, property := range *component.Properties {
+						if !slices.ContainsFunc(*existingComponent.Properties, func(p cdx.Property) bool {
+							return p.Name == property.Name
+						}) {
+							*existingComponent.Properties = append(*existingComponent.Properties, property)
 						}
 					}
 				}
+			}
 
-				if !found {
-					components[component.BOMRef] = component.BOMRef
-					*merged.Components = append(*merged.Components, component)
-				}
+			if !found {
+				components[component.BOMRef] = component.BOMRef
+				*merged.Components = append(*merged.Components, component)
 			}
 		}
 
@@ -226,6 +256,14 @@ func mergeCycloneDX(boms []*cdx.BOM) (*cdx.BOM, error) {
 				}
 			}
 		}
+	}
+
+	if len(*merged.Components) == 0 {
+		merged.Components = nil
+	}
+
+	if len(*merged.Dependencies) == 0 {
+		merged.Dependencies = nil
 	}
 
 	return merged, nil
