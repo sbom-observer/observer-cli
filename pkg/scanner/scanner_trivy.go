@@ -56,9 +56,24 @@ func (s *TrivyScanner) Priority() int {
 }
 
 func (s *TrivyScanner) Scan(target *ScanTarget) error {
+	// create args
 	output := filepath.Join(os.TempDir(), fmt.Sprintf("sbom-%s-%s.cdx.json", ids.NextUUID(), time.Now().Format("20060102-150405")))
+	args := []string{"fs", "--skip-db-update", "--skip-java-db-update", "--format", "cyclonedx", "--output", output}
 
-	_, err := execx.Trivy("fs", "--skip-db-update", "--skip-java-db-update", "--format", "cyclonedx", "--output", output, target.Path)
+	// skip subdirectories
+	subs, err := subDirectories(target.Path)
+	if err != nil {
+		return fmt.Errorf("failed to read subdirectories in %s: %w", target.Path, err)
+	}
+
+	for _, sub := range subs {
+		args = append(args, "--skip-dirs", sub)
+	}
+
+	// add path to scan
+	args = append(args, target.Path)
+
+	_, err = execx.Trivy(args...)
 	if err != nil {
 		var extCmdErr *execx.ExternalCommandError
 		if errors.As(err, &extCmdErr) {
@@ -92,4 +107,18 @@ func (s *TrivyScanner) Scan(target *ScanTarget) error {
 
 	target.Results = append(target.Results, bom)
 	return nil
+}
+
+func subDirectories(path string) ([]string, error) {
+	var dirs []string
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory %s: %w", path, err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			dirs = append(dirs, filepath.Join(path, entry.Name()))
+		}
+	}
+	return dirs, nil
 }
