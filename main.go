@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/sbom-observer/observer-cli/pkg/cmd"
 	"github.com/sbom-observer/observer-cli/pkg/log"
 	"github.com/sbom-observer/observer-cli/pkg/types"
+	"os"
+	"runtime/debug"
 )
 
 var (
@@ -23,9 +23,10 @@ func main() {
 	// catch panic from log.Fatal and exit with error code 1
 	defer func() {
 		if r := recover(); r != nil {
-			println()
-			log.Print("")
-			log.Error(fmt.Sprintf("%v", r))
+			if r != log.FatalErrorTombstone {
+				log.Error(fmt.Sprintf("%v", r))
+				log.Printf("AHA %s", debug.Stack())
+			}
 			os.Exit(1)
 		}
 	}()

@@ -49,11 +49,13 @@ func Error(msg interface{}, keyvals ...interface{}) {
 	Logger.Error(msg, keyvals...)
 }
 
+var FatalErrorTombstone = "fatal error"
+
 // Fatal logs a fatal message and exit.
 func Fatal(msg interface{}, keyvals ...interface{}) {
 	Logger.Print("")
 	Logger.Error(msg, keyvals...)
-	panic("fatal error")
+	panic(FatalErrorTombstone)
 }
 
 // Debugf logs a debug message with formatting.
