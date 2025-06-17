@@ -7,7 +7,8 @@ component:
   license: Apache 2.0
 supplier:
   name: Bitfront AB
-  url: https://sbom.observer
+  url: 
+    - https://sbom.observer
   contacts:
     - name: Andreas Bielk
       email: andreas@sbom.observer

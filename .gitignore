@@ -36,3 +36,4 @@ Vagrantfile
 tmp
 *.sh
 test.json
+.vscode
