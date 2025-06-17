@@ -4,21 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
+	"github.com/sbom-observer/observer-cli/pkg/tasks"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
-	"strings"
 	"text/template"
 	"time"
 
-	"github.com/sbom-observer/observer-cli/pkg/cdxutil"
-	"github.com/sbom-observer/observer-cli/pkg/files"
-	"github.com/sbom-observer/observer-cli/pkg/scanner"
-
 	cdx "github.com/CycloneDX/cyclonedx-go"
-	"github.com/sbom-observer/observer-cli/pkg/client"
 	"github.com/sbom-observer/observer-cli/pkg/log"
 	"github.com/spf13/cobra"
 )
@@ -46,14 +39,12 @@ func init() {
 	filesystemCmd.Flags().StringArrayP("artifacts", "a", []string{}, "Artifacts that makes up the software described by the SBOM")
 
 	// output
-	filesystemCmd.Flags().StringP("output", "o", "", "Output directory for the results (default: stdout)")
-	filesystemCmd.Flags().StringP("merge", "m", "", "Merge (filename) the results into a single BOM")
+	filesystemCmd.Flags().StringP("output", "o", "", "Output filename or directory for the results (default: stdout)")
+	filesystemCmd.Flags().BoolP("merge", "m", true, "Merge the results into a single BOM")
 	//repoCmd.Flags().Bool("super", false, "Merge the results with a super BOM")
 }
 
 func RunFilesystemCommand(cmd *cobra.Command, args []string) {
-	var err error
-
 	flagUpload, _ := cmd.Flags().GetBool("upload")
 	flagDebug, _ := cmd.Flags().GetBool("debug")
 	flagSilent, _ := cmd.Flags().GetBool("silent")
@@ -61,209 +52,33 @@ func RunFilesystemCommand(cmd *cobra.Command, args []string) {
 	flagDepth, _ := cmd.Flags().GetUint("depth")
 
 	flagOutput, _ := cmd.Flags().GetString("output")
-	flagMerge, _ := cmd.Flags().GetString("merge")
+	flagMerge, _ := cmd.Flags().GetBool("merge")
 	flagArtifacts, _ := cmd.Flags().GetStringArray("artifacts")
 	// TODO: load config from args[0]
 
-	if len(args) < 1 {
+	RunFilesystemScanner(args, flagDepth, flagOutput, flagMerge, flagArtifacts, flagUpload, flagSilent)
+}
+
+func RunFilesystemScanner(paths []string, flagDepth uint, flagOutput string, flagMerge bool, flagArtifacts []string, flagUpload bool, flagSilent bool) {
+	if len(paths) < 1 {
 		log.Fatal("the path to a source repository is required as an argument")
 	}
 
-	// find targets
-	var targets []*scanner.ScanTarget
-	{
-		pathToTarget := map[string]*scanner.ScanTarget{}
-		for _, arg := range args {
-			log.Debugf("finding scan targets for %s", arg)
-			ts, err := scanner.FindScanTargets(arg, flagDepth)
-			if err != nil {
-				log.Fatal("failed to find scan targets", "err", err)
-			}
-
-			if len(ts) == 0 {
-				log.Debugf("No targets found in %s", arg)
-				continue
-			}
-
-			for path, target := range ts {
-				if existingTarget, ok := pathToTarget[path]; ok {
-					for file, ecosystem := range existingTarget.Files {
-						target.Files[file] = ecosystem
-					}
-				}
-
-				pathToTarget[path] = target
-			}
-		}
-
-		for _, target := range pathToTarget {
-			targets = append(targets, target)
-		}
-
-		// sort targets to make scanning is deterministic
-		sort.Slice(targets, func(i, j int) bool {
-			return len(targets[i].Path) < len(targets[j].Path)
-		})
-	}
-
-	// TODO: remove
-	for _, target := range targets {
-		log.Debugf("found target %s -> %v", target.Path, target.Files)
-	}
-
-	if len(targets) == 0 {
-		log.Fatal("no targets found")
-	}
-
-	// scan targets
-	for _, target := range targets {
-		log.Infof("Generating SBOM for '%s'", target.Path)
-		log.Debug("Generating SBOM", "path", target.Path, "target", target.Files)
-
-		for _, scanner := range scanner.ScannersForTarget(*target) {
-			log.Debug("running scanner", "id", scanner.Id())
-			err := scanner.Scan(target)
-			if err != nil {
-				log.Fatal("failed to create SBOM for repository", "path", target.Path, "err", err)
-			}
-		}
-
-		// fallback to directory name if no name is set
-		if target.Config.Component.Name == "" {
-			target.Config.Component.Name = filepath.Base(target.Path)
-		}
-
-		// merge results and add metadata
-		log.Debugf("merging %d BOMs for target %s", len(target.Results), target.Path)
-
-		target.Merged, err = cdxutil.DestructiveMergeSBOMs(target.Config, target.Results)
-		if err != nil {
-			log.Fatal("failed to merge SBOMs for target", "target", target.Path, "err", err)
-		}
-
-		log.Debugf("merged %d BOMs for target %s -> %s@%s", len(target.Results), target.Path, target.Merged.Metadata.Component.Name, target.Merged.Metadata.Component.Version)
-	}
-
-	// TODO: implement --merge flag (and --merge-with-ref or --super)
-
-	// merge to single file
-	if flagMerge != "" {
-		if isDirectory(flagMerge) {
-			log.Fatalf("output destination %s is a directory. Did you mean --output?", flagMerge)
-		}
-
-		// TODO: remove
-		// if len(targets) != 1 {
-		// 	log.Fatal("merge flag can only be used with a single target")
-		// }
-
-		// var merged *cdx.BOM
-		// for _, target := range targets {
-		// 	merged = target.Merged
-		// }
-
-		var rootPath string
-		var targetsToMerge []*scanner.ScanTarget
-
-		for _, target := range targets {
-			if rootPath == "" || len(target.Path) < len(rootPath) {
-				rootPath = target.Path
-			} else if !strings.HasPrefix(target.Path, rootPath) {
-				log.Fatal("targets are not part of the same root path", "root", rootPath, "target", target.Path)
-			}
-			targetsToMerge = append(targetsToMerge, target)
-		}
-
-		// sort targets by path length
-		sort.Slice(targetsToMerge, func(i, j int) bool {
-			return len(targetsToMerge[i].Path) < len(targetsToMerge[j].Path)
-		})
-
-		var boms []*cdx.BOM
-		for _, target := range targetsToMerge {
-			boms = append(boms, target.Merged)
-		}
-
-		// TODO: replace with an additive merge
-		merged, err := cdxutil.DestructiveMergeSBOMs(targetsToMerge[0].Config, boms)
-		if err != nil {
-			log.Fatal("failed to merge SBOMs for config", "config", targetsToMerge[0].Merged.Metadata.Component.Name, "err", err)
-		}
-
-		log.Debugf("merged %d BOMs to %s %s", len(boms), merged.Metadata.Component.Name, merged.Metadata.Component.Version)
-
-		// add artifacts to the merged BOM
-		if len(flagArtifacts) > 0 {
-			artifacts, err := scanArtifacts(flagArtifacts)
-			if err != nil {
-				log.Fatal("failed to scan artifacts", "err", err)
-			}
-
-			log.Debugf("adding %d artifacts to merged BOM", len(artifacts))
-
-			if len(artifacts) >= 0 {
-				if merged.Metadata.Component == nil {
-					log.Fatal("failed to add artifacts to merged BOM, the BOM is missing a root component", "err", err)
-				}
-
-				if merged.Metadata.Component.Components == nil {
-					merged.Metadata.Component.Components = &[]cdx.Component{}
-				}
-
-				*merged.Metadata.Component.Components = append(*merged.Metadata.Component.Components, artifacts...)
-			} else {
-				log.Debug("no artifacts found")
-			}
-		}
-
-		// output merged BOM
-		outputFilename := flagMerge
-
-		log.Debugf("writing SBOM to %s", outputFilename)
-
-		out, err := os.Create(outputFilename)
-		if err != nil {
-			log.Fatal("failed to create output file", "filename", outputFilename, "err", err)
-		}
-
-		// use cdx provided encoder
-		encoder := cdx.NewBOMEncoder(out, cdx.BOMFileFormatJSON)
-		encoder.SetPretty(true)
-		err = encoder.Encode(merged)
-		if err != nil {
-			log.Fatal("failed to write output file", "filename", outputFilename, "err", err)
-		}
-
-		_ = out.Close()
-
+	results, err := tasks.CreateFilesystemSBOM(paths, flagDepth, flagMerge, flagArtifacts)
+	if err != nil {
+		log.Fatal("failed to create filesystem SBOM", "err", err)
 	}
 
 	// write to output
 	if flagOutput != "" {
-		if !isDirectory(flagOutput) {
-			log.Fatalf("output destination %s is not a directory. Did you mean --merge?", flagOutput)
-		}
+		if len(results) == 1 {
 
-		for _, target := range targets {
-
-			outputTemplate := "sbom-{{.Name}}-{{.Module}}-{{.Timestamp}}.cdx.json"
-			if target.Config.OutputTemplate != "" {
-				outputTemplate = target.Config.OutputTemplate
-			}
-
-			outputFilename, err := generateFilename(outputTemplate, "", target.Merged.Metadata.Component)
-			if err != nil {
-				log.Fatal("failed to generate output filename", "err", err)
-			}
-
-			outputFilename, err = filepath.Abs(filepath.Join(flagOutput, outputFilename))
-			if err != nil {
-				log.Fatal("failed to get absolute path for output filename", "err", err)
-			}
+			// output merged BOM
+			outputFilename := flagOutput
 
 			log.Debugf("writing SBOM to %s", outputFilename)
 
-			out, err := os.Create(outputFilename)
+			out, err := os.Create(flagOutput)
 			if err != nil {
 				log.Fatal("failed to create output file", "filename", outputFilename, "err", err)
 			}
@@ -271,59 +86,99 @@ func RunFilesystemCommand(cmd *cobra.Command, args []string) {
 			// use cdx provided encoder
 			encoder := cdx.NewBOMEncoder(out, cdx.BOMFileFormatJSON)
 			encoder.SetPretty(true)
-			err = encoder.Encode(target.Merged)
+			err = encoder.Encode(results[0])
 			if err != nil {
 				log.Fatal("failed to write output file", "filename", outputFilename, "err", err)
 			}
 
 			_ = out.Close()
+
+		}
+
+		if len(results) > 1 {
+			if !isDirectory(flagOutput) {
+				log.Fatalf("output destination %s is not a directory. Did you mean --merge?", flagOutput)
+			}
+
+			for _, merged := range results {
+
+				outputTemplate := "sbom-{{.Name}}-{{.Module}}-{{.Timestamp}}.cdx.json"
+				// if target.Config.OutputTemplate != "" {
+				// outputTemplate = target.Config.OutputTemplate
+				// }
+
+				outputFilename, err := generateFilename(outputTemplate, "", merged.Metadata.Component)
+				if err != nil {
+					log.Fatal("failed to generate output filename", "err", err)
+				}
+
+				outputFilename, err = filepath.Abs(filepath.Join(flagOutput, outputFilename))
+				if err != nil {
+					log.Fatal("failed to get absolute path for output filename", "err", err)
+				}
+
+				log.Debugf("writing SBOM to %s", outputFilename)
+
+				out, err := os.Create(outputFilename)
+				if err != nil {
+					log.Fatal("failed to create output file", "filename", outputFilename, "err", err)
+				}
+
+				// use cdx provided encoder
+				encoder := cdx.NewBOMEncoder(out, cdx.BOMFileFormatJSON)
+				encoder.SetPretty(true)
+				err = encoder.Encode(merged)
+				if err != nil {
+					log.Fatal("failed to write output file", "filename", outputFilename, "err", err)
+				}
+
+				_ = out.Close()
+			}
 		}
 	}
 
 	// upload
 	// TODO: handle upload merged
-	if flagUpload {
-		progress := log.NewProgressBar(int64(len(targets)), "Uploading BOMs", flagSilent)
+	// if flagUpload {
+	// 	progress := log.NewProgressBar(int64(len(targets)), "Uploading BOMs", flagSilent)
 
-		c := client.NewObserverClient()
+	// 	c := client.NewObserverClient()
 
-		for _, target := range targets {
-			outputTemplate := "sbom-{{.Name}}-{{.Module}}-{{.Timestamp}}.cdx.json"
-			if target.Config.OutputTemplate != "" {
-				outputTemplate = target.Config.OutputTemplate
-			}
+	// 	for _, target := range targets {
+	// 		outputTemplate := "sbom-{{.Name}}-{{.Module}}-{{.Timestamp}}.cdx.json"
+	// 		if target.Config.OutputTemplate != "" {
+	// 			outputTemplate = target.Config.OutputTemplate
+	// 		}
 
-			outputFilename, err := generateFilename(outputTemplate, "", target.Merged.Metadata.Component)
-			if err != nil {
-				log.Fatal("failed to generate output filename", "err", err)
-			}
+	// 		outputFilename, err := generateFilename(outputTemplate, "", target.Merged.Metadata.Component)
+	// 		if err != nil {
+	// 			log.Fatal("failed to generate output filename", "err", err)
+	// 		}
 
-			err = c.UploadSource(outputFilename, func(w io.Writer) error {
-				encoder := cdx.NewBOMEncoder(w, cdx.BOMFileFormatJSON)
-				encoder.SetPretty(true)
-				return encoder.Encode(target.Merged)
-			})
-			if err != nil {
-				log.Fatal("error when uploading", "file", outputFilename, "err", err)
-			}
+	// 		err = c.UploadSource(outputFilename, func(w io.Writer) error {
+	// 			encoder := cdx.NewBOMEncoder(w, cdx.BOMFileFormatJSON)
+	// 			encoder.SetPretty(true)
+	// 			return encoder.Encode(target.Merged)
+	// 		})
+	// 		if err != nil {
+	// 			log.Fatal("error when uploading", "file", outputFilename, "err", err)
+	// 		}
 
-			_ = progress.Add(1)
-		}
+	// 		_ = progress.Add(1)
+	// 	}
 
-		_ = progress.Finish()
-		_ = progress.Clear()
+	// 	_ = progress.Finish()
+	// 	_ = progress.Clear()
 
-		log.Printf("Uploaded %d BOM(s)", len(targets))
-	}
+	// 	log.Printf("Uploaded %d BOM(s)", len(targets))
+	// }
 
 	// output to stdout
-	if flagOutput == "" && flagMerge == "" {
-		for _, target := range targets {
-			for _, result := range target.Results {
-				enc := json.NewEncoder(os.Stdout)
-				enc.SetIndent("", "  ")
-				_ = enc.Encode(result)
-			}
+	if flagOutput == "" {
+		for _, merged := range results {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			_ = enc.Encode(merged)
 		}
 	}
 }
@@ -368,49 +223,4 @@ func isDirectory(filename string) bool {
 	}
 	// Check if the FileMode is a directory
 	return fileInfo.IsDir()
-}
-
-func scanArtifacts(artifacts []string) ([]cdx.Component, error) {
-	var components []cdx.Component
-
-	for _, artifact := range artifacts {
-		artifactPaths := strings.Split(artifact, " ")
-
-		for _, path := range artifactPaths {
-			path = strings.TrimSpace(path)
-
-			// Check if file exists
-			fileInfo, err := os.Stat(path)
-			if err != nil {
-				// skip files that don't exist
-				continue
-			}
-
-			if fileInfo.IsDir() {
-				// skip directories
-				continue
-			}
-
-			hash, err := files.HashFileSha256(path)
-			if err != nil {
-				return nil, fmt.Errorf("failed to hash artifact file: %w", err)
-			}
-
-			// Create component for this artifact
-			component := cdx.Component{
-				Type: cdx.ComponentTypeFile,
-				Name: filepath.Base(path),
-				Hashes: &[]cdx.Hash{
-					{
-						Algorithm: cdx.HashAlgoSHA1,
-						Value:     hash,
-					},
-				},
-			}
-
-			components = append(components, component)
-		}
-	}
-
-	return components, nil
 }

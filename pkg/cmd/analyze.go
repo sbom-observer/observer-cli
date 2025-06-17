@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/sbom-observer/observer-cli/pkg/types"
 	"io"
 	"os"
 	"runtime"
@@ -125,9 +126,9 @@ func renderSpeculativeVulnerabilities(w io.Writer, isTerminalWriter bool, result
 
 		severity := ""
 		if isTerminalWriter {
-			severity = fmt.Sprintf("%s", colorizeSeverity(severityToString(v.Severity)))
+			severity = fmt.Sprintf("%s", colorizeSeverity(types.SeverityToString(v.Severity)))
 		} else {
-			severity = fmt.Sprintf("%s", severityToString(v.Severity))
+			severity = fmt.Sprintf("%s", types.SeverityToString(v.Severity))
 		}
 
 		t.AddRow(
@@ -183,9 +184,9 @@ func renderSpeculativeViolations(w io.Writer, isTerminalWriter bool, result *cli
 
 		severity := ""
 		if isTerminalWriter {
-			severity = fmt.Sprintf("%s", colorizeSeverity(severityToString(v.Severity)))
+			severity = fmt.Sprintf("%s", colorizeSeverity(types.SeverityToString(v.Severity)))
 		} else {
-			severity = fmt.Sprintf("%s", severityToString(v.Severity))
+			severity = fmt.Sprintf("%s", types.SeverityToString(v.Severity))
 		}
 
 		t.AddRow(
@@ -283,26 +284,6 @@ func newTableWriter(w io.Writer, isTerminalWriter bool) *table.Table {
 	}
 
 	return t
-}
-
-func severityToString(severity float64) string {
-	if severity > 8.9 {
-		return "CRITICAL"
-	}
-
-	if severity > 6.9 {
-		return "HIGH"
-	}
-
-	if severity > 3.9 {
-		return "MEDIUM"
-	}
-
-	if severity > 0 {
-		return "LOW"
-	}
-
-	return "UNKNOWN"
 }
 
 func colorizeSeverity(severity string) string {

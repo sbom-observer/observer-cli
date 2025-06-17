@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"os"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
@@ -23,7 +24,7 @@ func LoadConfig(config *ScanConfig, filename string) error {
 
 	err = yaml.Unmarshal(bs, &config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal config file %s: %w", filename, err)
 	}
 	return nil
 }
