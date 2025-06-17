@@ -53,7 +53,7 @@ func Error(msg interface{}, keyvals ...interface{}) {
 func Fatal(msg interface{}, keyvals ...interface{}) {
 	Logger.Print("")
 	Logger.Error(msg, keyvals...)
-	os.Exit(1)
+	panic("fatal error")
 }
 
 // Debugf logs a debug message with formatting.
