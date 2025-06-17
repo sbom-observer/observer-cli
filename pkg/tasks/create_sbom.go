@@ -7,37 +7,40 @@ import (
 	"github.com/sbom-observer/observer-cli/pkg/files"
 	"github.com/sbom-observer/observer-cli/pkg/log"
 	"github.com/sbom-observer/observer-cli/pkg/scanner"
+	"github.com/sbom-observer/observer-cli/pkg/types"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 )
 
-func CreateFilesystemSBOM(paths []string, flagDepth uint, flagMerge bool, flagArtifacts []string) ([]*cdx.BOM, error) {
+func CreateFilesystemSBOM(paths []string, vendorPaths []string, flagDepth uint, flagMerge bool, flagArtifacts []string) ([]*cdx.BOM, error) {
 	var err error
 
 	if len(paths) < 1 {
 		log.Fatal("the path to a source repository is required as an argument")
 	}
 
-	for i := range paths {
-		// make sure the path is absolute
-		if !filepath.IsAbs(paths[i]) {
-			absPath, err := filepath.Abs(paths[i])
-			if err != nil {
-				log.Fatal("failed to get absolute path", "path", paths[i], "err", err)
-			}
-			paths[i] = absPath
-		}
-	}
-
 	// find targets
 	var targets []*scanner.ScanTarget
 	{
+		paths = resolvePaths(paths)
+		vendorPaths = resolvePaths(vendorPaths)
+		vendorPathsSet := types.SliceSet[string](vendorPaths)
+
+		paths = append(paths, vendorPaths...)
+
 		pathToTarget := map[string]*scanner.ScanTarget{}
 		for _, arg := range paths {
-			log.Debugf("finding scan targets for %s", arg)
-			ts, err := scanner.FindScanTargets(arg, flagDepth)
+			depth := flagDepth
+
+			// scan vendor paths recursively - with depth 2 (./vendored/openssl/observer.yml etc.)
+			if vendorPathsSet.Contains(arg) {
+				depth = 2
+			}
+
+			log.Debugf("finding scan targets in %s (depth %d)", arg, depth)
+			ts, err := scanner.FindScanTargets(arg, depth)
 			if err != nil {
 				log.Fatal("failed to find scan targets", "err", err)
 			}
@@ -178,6 +181,19 @@ func CreateFilesystemSBOM(paths []string, flagDepth uint, flagMerge bool, flagAr
 	}
 
 	return results, nil
+}
+
+func resolvePaths(paths []string) []string {
+	var absolutePaths []string
+	for _, path := range paths {
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			log.Fatal("failed to get absolute path", "path", path, "err", err)
+		}
+		absolutePaths = append(absolutePaths, absPath)
+	}
+
+	return absolutePaths
 }
 
 func scanArtifacts(artifacts []string) ([]cdx.Component, error) {

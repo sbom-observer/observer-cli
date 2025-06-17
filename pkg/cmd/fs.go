@@ -38,6 +38,9 @@ func init() {
 	// artifacts
 	filesystemCmd.Flags().StringArrayP("artifacts", "a", []string{}, "Artifacts that makes up the software described by the SBOM")
 
+	// paths
+	filesystemCmd.Flags().StringArrayP("vendor", "v", []string{}, "Include vendor path (e.g. ./vendor etc) in the scan. This is useful for monorepos or projects with vendored dependencies.")
+
 	// output
 	filesystemCmd.Flags().StringP("output", "o", "", "Output filename or directory for the results (default: stdout)")
 	filesystemCmd.Flags().BoolP("merge", "m", true, "Merge the results into a single BOM")
@@ -54,17 +57,18 @@ func RunFilesystemCommand(cmd *cobra.Command, args []string) {
 	flagOutput, _ := cmd.Flags().GetString("output")
 	flagMerge, _ := cmd.Flags().GetBool("merge")
 	flagArtifacts, _ := cmd.Flags().GetStringArray("artifacts")
+	flagVendorPaths, _ := cmd.Flags().GetStringArray("vendor")
 	// TODO: load config from args[0]
 
-	RunFilesystemScanner(args, flagDepth, flagOutput, flagMerge, flagArtifacts, flagUpload, flagSilent)
+	RunFilesystemScanner(args, flagVendorPaths, flagDepth, flagOutput, flagMerge, flagArtifacts, flagUpload, flagSilent)
 }
 
-func RunFilesystemScanner(paths []string, flagDepth uint, flagOutput string, flagMerge bool, flagArtifacts []string, flagUpload bool, flagSilent bool) {
+func RunFilesystemScanner(paths []string, vendorPaths []string, flagDepth uint, flagOutput string, flagMerge bool, flagArtifacts []string, flagUpload bool, flagSilent bool) {
 	if len(paths) < 1 {
 		log.Fatal("the path to a source repository is required as an argument")
 	}
 
-	results, err := tasks.CreateFilesystemSBOM(paths, flagDepth, flagMerge, flagArtifacts)
+	results, err := tasks.CreateFilesystemSBOM(paths, vendorPaths, flagDepth, flagMerge, flagArtifacts)
 	if err != nil {
 		log.Fatal("failed to create filesystem SBOM", "err", err)
 	}
