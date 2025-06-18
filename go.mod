@@ -15,7 +15,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jedib0t/go-pretty/v6 v6.5.5
 	github.com/liamg/tml v0.7.0
-	github.com/mark3labs/mcp-go v0.32.0
 	github.com/package-url/packageurl-go v0.1.3
 	github.com/sbom-observer/build-observer v0.0.0-20250331152537-e26f6fd6f591
 	github.com/schollz/progressbar/v3 v3.14.3
@@ -96,11 +95,9 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spdx/gordf v0.0.0-20221230105357-b735bd5aac89 // indirect
 	github.com/spdx/tools-golang v0.5.5 // indirect
-	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/tidwall/jsonc v0.3.2 // indirect
 	github.com/vbatts/tar-split v0.11.6 // indirect
-	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.etcd.io/bbolt v1.4.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect

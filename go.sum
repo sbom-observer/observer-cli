@@ -91,8 +91,6 @@ github.com/erikvarga/go-rpmdb v0.0.0-20240208180226-b97e041ef9af h1:JXdZ7gz1cike
 github.com/erikvarga/go-rpmdb v0.0.0-20240208180226-b97e041ef9af/go.mod h1:MiEorPk0IChAoCwpg2FXyqVgbNvOlPWZAYHqqIoDNoY=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
-github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
-github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/glebarez/go-sqlite v1.20.3 h1:89BkqGOXR9oRmG58ZrzgoY/Fhy5x0M+/WV48U5zVrZ4=
 github.com/glebarez/go-sqlite v1.20.3/go.mod h1:u3N6D/wftiAzIOJtZl6BmedqxmmkDfH3q+ihjqxC9u0=
 github.com/go-logfmt/logfmt v0.6.0 h1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=
@@ -167,8 +165,6 @@ github.com/liamg/tml v0.7.0 h1:0cVok661KuQy659aFpXpem8mXUDroREuWc1p/+y7hfU=
 github.com/liamg/tml v0.7.0/go.mod h1:Vuzs4Dn44Awoyd0MLl2EuJR++l1NlFqU6BJk0oxVYX4=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
-github.com/mark3labs/mcp-go v0.32.0 h1:fgwmbfL2gbd67obg57OfV2Dnrhs1HtSdlY/i5fn7MU8=
-github.com/mark3labs/mcp-go v0.32.0/go.mod h1:rXqOudj/djTORU/ThxYx8fqEVj/5pvTuuebQ2RC7uk4=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-runewidth v0.0.16 h1:E5ScNMtiwvlvB5paMFdw9p4kSQzbXFikJ5SQO6TULQc=
@@ -227,8 +223,6 @@ github.com/rogpeppe/go-internal v1.13.1/go.mod h1:uMEvuHeurkdAXX61udpOXGD/AzZDWN
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/rust-secure-code/go-rustaudit v0.0.0-20250226111315-e20ec32e963c h1:8gOLsYwaY2JwlTMT4brS5/9XJdrdIbmk2obvQ748CC0=
 github.com/rust-secure-code/go-rustaudit v0.0.0-20250226111315-e20ec32e963c/go.mod h1:kwM/7r/rVluTE8qJbHAffduuqmSv4knVQT2IajGvSiA=
-github.com/sbom-observer/build-observer v0.0.0-20250324152305-d691adeec11a h1:3Q9B2NuM1DjMX+wLzqQV1Me76BxjW8rm2yCyHCIHGHI=
-github.com/sbom-observer/build-observer v0.0.0-20250324152305-d691adeec11a/go.mod h1:kmJqsNkqX6Hg2PPhYixnIaUqLlzB4h+wZ5eaRh5wsSI=
 github.com/sbom-observer/build-observer v0.0.0-20250331152537-e26f6fd6f591 h1:UDeNFdKiB6AQRrj1vvq7lWfC39e6/WMNG5wy8bP4c/0=
 github.com/sbom-observer/build-observer v0.0.0-20250331152537-e26f6fd6f591/go.mod h1:kmJqsNkqX6Hg2PPhYixnIaUqLlzB4h+wZ5eaRh5wsSI=
 github.com/schollz/progressbar/v3 v3.14.3 h1:oOuWW19ka12wxYU1XblR4n16wF/2Y1dBLMarMo6p4xU=
@@ -240,8 +234,6 @@ github.com/spdx/gordf v0.0.0-20221230105357-b735bd5aac89 h1:dArkMwZ7Mf2JiU8Ofdmq
 github.com/spdx/gordf v0.0.0-20221230105357-b735bd5aac89/go.mod h1:uKWaldnbMnjsSAXRurWqqrdyZen1R7kxl8TkmWk2OyM=
 github.com/spdx/tools-golang v0.5.5 h1:61c0KLfAcNqAjlg6UNMdkwpMernhw3zVRwDZ2x9XOmk=
 github.com/spdx/tools-golang v0.5.5/go.mod h1:MVIsXx8ZZzaRWNQpUDhC4Dud34edUYJYecciXgrw5vE=
-github.com/spf13/cast v1.7.1 h1:cuNEagBQEHWN1FnbGEjCXL2szYEXqfJPbP2HNUaca9Y=
-github.com/spf13/cast v1.7.1/go.mod h1:ancEpBxwJDODSW/UG4rDrAqiKolqNNh2DX3mk86cAdo=
 github.com/spf13/cobra v1.9.1 h1:CXSaggrXdbHK9CF+8ywj8Amf7PBRmPCOJugH954Nnlo=
 github.com/spf13/cobra v1.9.1/go.mod h1:nDyEzZ8ogv936Cinf6g1RU9MRY64Ir93oCnqb9wxYW0=
 github.com/spf13/pflag v1.0.6 h1:jFzHGLGAlb3ruxLB8MhbI6A8+AQX/2eW4qeyNZXNp2o=
@@ -271,8 +263,6 @@ github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 h1:EzJWgHo
 github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415/go.mod h1:GwrjFmJcFw6At/Gs6z4yjiIwzuJ1/+UwLxMQDVQXShQ=
 github.com/xeipuuv/gojsonschema v1.2.0 h1:LhYJRs+L4fBtjZUfuSZIKGeVu0QRy8e5Xi7D17UxZ74=
 github.com/xeipuuv/gojsonschema v1.2.0/go.mod h1:anYRn/JVcOK2ZgGU+IjEV4nwlhoK5sQluxsYJ78Id3Y=
-github.com/yosida95/uritemplate/v3 v3.0.2 h1:Ed3Oyj9yrmi9087+NczuL5BwkIc4wvTb5zIM+UJPGz4=
-github.com/yosida95/uritemplate/v3 v3.0.2/go.mod h1:ILOh0sOhIJR3+L/8afwt/kE++YT040gmv5BQTMR2HP4=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 go.etcd.io/bbolt v1.4.0 h1:TU77id3TnN/zKr7CO/uk+fBCwF2jGcMuw2B/FMAzYIk=
