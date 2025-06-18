@@ -229,6 +229,8 @@ github.com/rust-secure-code/go-rustaudit v0.0.0-20250226111315-e20ec32e963c h1:8
 github.com/rust-secure-code/go-rustaudit v0.0.0-20250226111315-e20ec32e963c/go.mod h1:kwM/7r/rVluTE8qJbHAffduuqmSv4knVQT2IajGvSiA=
 github.com/sbom-observer/build-observer v0.0.0-20250324152305-d691adeec11a h1:3Q9B2NuM1DjMX+wLzqQV1Me76BxjW8rm2yCyHCIHGHI=
 github.com/sbom-observer/build-observer v0.0.0-20250324152305-d691adeec11a/go.mod h1:kmJqsNkqX6Hg2PPhYixnIaUqLlzB4h+wZ5eaRh5wsSI=
+github.com/sbom-observer/build-observer v0.0.0-20250331152537-e26f6fd6f591 h1:UDeNFdKiB6AQRrj1vvq7lWfC39e6/WMNG5wy8bP4c/0=
+github.com/sbom-observer/build-observer v0.0.0-20250331152537-e26f6fd6f591/go.mod h1:kmJqsNkqX6Hg2PPhYixnIaUqLlzB4h+wZ5eaRh5wsSI=
 github.com/schollz/progressbar/v3 v3.14.3 h1:oOuWW19ka12wxYU1XblR4n16wF/2Y1dBLMarMo6p4xU=
 github.com/schollz/progressbar/v3 v3.14.3/go.mod h1:aT3UQ7yGm+2ZjeXPqsjTenwL3ddUiuZ0kfQ/2tHlyNI=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=

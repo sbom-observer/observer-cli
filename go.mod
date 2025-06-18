@@ -17,7 +17,7 @@ require (
 	github.com/liamg/tml v0.7.0
 	github.com/mark3labs/mcp-go v0.32.0
 	github.com/package-url/packageurl-go v0.1.3
-	github.com/sbom-observer/build-observer v0.0.0-20250324152305-d691adeec11a
+	github.com/sbom-observer/build-observer v0.0.0-20250331152537-e26f6fd6f591
 	github.com/schollz/progressbar/v3 v3.14.3
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
