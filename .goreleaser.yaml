@@ -73,7 +73,7 @@ sboms:
     documents:
       - "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.cdx.json"
     cmd: 'observer'
-    args: [ "fs", "-m", "$document", "{{ .ArtifactPath | abs | dir }}/observer.yml", "{{ .ArtifactPath | abs }}" ]
+    args: [ "fs", "-o", "$document", "{{ .ArtifactPath | abs | dir }}/observer.yml", "{{ .ArtifactPath | abs }}" ]
 
 changelog:
   sort: asc
