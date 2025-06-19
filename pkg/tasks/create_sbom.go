@@ -228,7 +228,7 @@ func scanArtifacts(artifacts []string) ([]cdx.Component, error) {
 				Name: filepath.Base(path),
 				Hashes: &[]cdx.Hash{
 					{
-						Algorithm: cdx.HashAlgoSHA1,
+						Algorithm: cdx.HashAlgoSHA256,
 						Value:     hash,
 					},
 				},
