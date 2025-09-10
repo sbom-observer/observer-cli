@@ -11,12 +11,13 @@ import (
 	scalibr "github.com/google/osv-scalibr"
 	"github.com/google/osv-scalibr/binary/platform"
 	"github.com/google/osv-scalibr/extractor"
-	filesystemextractors "github.com/google/osv-scalibr/extractor/filesystem/list"
+	"github.com/google/osv-scalibr/extractor/filesystem/language/javascript/packagejson"
 	"github.com/google/osv-scalibr/extractor/filesystem/osv"
-	cdxe "github.com/google/osv-scalibr/extractor/filesystem/sbom/cdx"
-	spdxe "github.com/google/osv-scalibr/extractor/filesystem/sbom/spdx"
+	cdxemeta "github.com/google/osv-scalibr/extractor/filesystem/sbom/cdx/metadata"
+	spdxmeta "github.com/google/osv-scalibr/extractor/filesystem/sbom/spdx/metadata"
 	sfs "github.com/google/osv-scalibr/fs"
 	"github.com/google/osv-scalibr/plugin"
+	plugins "github.com/google/osv-scalibr/plugin/list"
 	"github.com/google/osv-scalibr/purl"
 	"github.com/google/uuid"
 	"github.com/sbom-observer/observer-cli/pkg/log"
@@ -25,20 +26,20 @@ import (
 
 type scalibrRepoScanner struct {
 	includeDevDependencies bool
-	extractorNames         []string
+	pluginNames            []string
 }
 
 func NewDefaultScalibrRepoScanner() *scalibrRepoScanner {
 	return &scalibrRepoScanner{
 		includeDevDependencies: false,
-		extractorNames:         []string{"default", "dotnet", "ruby", "rust", "cpp", "php", "erlang", "elixir"},
+		pluginNames:            []string{"default", "dotnet", "ruby", "rust", "cpp", "php", "erlang", "elixir"},
 	}
 }
 
 func NewSBOMScalibrRepoScanner() *scalibrRepoScanner {
 	return &scalibrRepoScanner{
 		includeDevDependencies: false,
-		extractorNames:         []string{"sbom"},
+		pluginNames:            []string{"sbom"},
 	}
 }
 
@@ -62,13 +63,13 @@ func (s *scalibrRepoScanner) Scan(target *ScanTarget) error {
 		RunningSystem: true,
 	}
 
-	extractors, err := filesystemextractors.ExtractorsFromNames(s.extractorNames)
+	usePlugins, err := plugins.FromNames(s.pluginNames)
 	if err != nil {
-		return fmt.Errorf("failed to get default extractors: %w", err)
+		return fmt.Errorf("failed to get default usePlugins: %w", err)
 	}
 
-	extractors = append(extractors, localextractors.CrystalShardLockExtractor{})
-	extractors = filesystemextractors.FilterByCapabilities(extractors, capabilities)
+	usePlugins = append(usePlugins, localextractors.CrystalShardLockExtractor{})
+	usePlugins = plugin.FilterByCapabilities(usePlugins, capabilities)
 
 	var filesToScan []string
 	for f := range target.Files {
@@ -79,17 +80,17 @@ func (s *scalibrRepoScanner) Scan(target *ScanTarget) error {
 	log.Debugf("Scanning %v files", filesToScan)
 
 	config := &scalibr.ScanConfig{
-		Capabilities:         capabilities,
-		FilesystemExtractors: extractors,
+		Capabilities: capabilities,
+		Plugins:      usePlugins,
 		// standalone should be used for systems (i.e. Windows)
 		// Detectors none (inventory -> findings)
 		ScanRoots:      []*sfs.ScanRoot{sfs.RealFSScanRoot(target.Path)},
-		FilesToExtract: filesToScan,
+		PathsToExtract: filesToScan,
 	}
 
 	log.Infof(
-		"Running scan with %d extractors and %d detectors",
-		len(config.FilesystemExtractors)+len(config.StandaloneExtractors), len(config.Detectors),
+		"Running scan with %d plugins",
+		len(config.Plugins),
 	)
 
 	// TODO: context timeout
@@ -136,10 +137,10 @@ func (s *scalibrRepoScanner) Scan(target *ScanTarget) error {
 }
 
 func scalibrToCycloneDX(bom *cyclonedx.BOM, r *scalibr.ScanResult, includeDevDependencies bool) {
-	comps := make([]cyclonedx.Component, 0, len(r.Inventories))
+	comps := make([]cyclonedx.Component, 0, len(r.Inventory.Packages))
 
 NextInventory:
-	for _, i := range r.Inventories {
+	for _, i := range r.Inventory.Packages {
 		// skip dev
 		if !includeDevDependencies {
 			if i.Metadata != nil {
@@ -149,6 +150,11 @@ NextInventory:
 					}
 				}
 			}
+		}
+
+		// skip javascript/packagejson top level component
+		if i.Plugins[0] == packagejson.Name {
+			continue NextInventory
 		}
 
 		pkg := cyclonedx.Component{
@@ -173,7 +179,7 @@ NextInventory:
 		}
 
 		if len((*i).Locations) > 0 {
-			occ := make([]cyclonedx.EvidenceOccurrence, 0, len(((*i).Locations)))
+			occ := make([]cyclonedx.EvidenceOccurrence, 0, len((*i).Locations))
 			for _, loc := range (*i).Locations {
 				occ = append(occ, cyclonedx.EvidenceOccurrence{
 					Location: loc,
@@ -201,16 +207,16 @@ NextInventory:
 	}
 }
 
-func toPURL(i *extractor.Inventory) *purl.PackageURL {
-	return i.Extractor.ToPURL(i)
+func toPURL(i *extractor.Package) *purl.PackageURL {
+	return i.PURL()
 }
 
-func extractCPEs(i *extractor.Inventory) []string {
+func extractCPEs(i *extractor.Package) []string {
 	// Only the two SBOM inventory types support storing CPEs (i.e. scanning existing SBOMs).
-	if m, ok := i.Metadata.(*spdxe.Metadata); ok {
+	if m, ok := i.Metadata.(*spdxmeta.Metadata); ok {
 		return m.CPEs
 	}
-	if m, ok := i.Metadata.(*cdxe.Metadata); ok {
+	if m, ok := i.Metadata.(*cdxemeta.Metadata); ok {
 		return m.CPEs
 	}
 	return nil
