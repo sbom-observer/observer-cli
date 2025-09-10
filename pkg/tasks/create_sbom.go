@@ -2,16 +2,17 @@ package tasks
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+
 	cdx "github.com/CycloneDX/cyclonedx-go"
 	"github.com/sbom-observer/observer-cli/pkg/cdxutil"
 	"github.com/sbom-observer/observer-cli/pkg/files"
 	"github.com/sbom-observer/observer-cli/pkg/log"
 	"github.com/sbom-observer/observer-cli/pkg/scanner"
 	"github.com/sbom-observer/observer-cli/pkg/types"
-	"os"
-	"path/filepath"
-	"sort"
-	"strings"
 )
 
 func CreateFilesystemSBOM(paths []string, vendorPaths []string, flagDepth uint, flagMerge bool, flagArtifacts []string) ([]*cdx.BOM, error) {
@@ -150,9 +151,8 @@ func CreateFilesystemSBOM(paths []string, vendorPaths []string, flagDepth uint, 
 				log.Fatal("failed to scan artifacts", "err", err)
 			}
 
-			log.Debugf("adding %d artifacts to merged BOM", len(artifacts))
-
-			if len(artifacts) >= 0 {
+			if len(artifacts) > 0 {
+				log.Debugf("adding %d artifacts to merged BOM", len(artifacts))
 				if merged.Metadata.Component == nil {
 					log.Fatal("failed to add artifacts to merged BOM, the BOM is missing a root component", "err", err)
 				}
@@ -205,36 +205,58 @@ func scanArtifacts(artifacts []string) ([]cdx.Component, error) {
 		for _, path := range artifactPaths {
 			path = strings.TrimSpace(path)
 
-			// Check if file exists
-			fileInfo, err := os.Stat(path)
+			// expand ~ to home directory
+			if strings.HasPrefix(path, "~/") {
+				home, err := os.UserHomeDir()
+				if err == nil { // best effort
+					path = filepath.Join(home, path[2:])
+				}
+			}
+
+			// Expand glob patterns
+			expandedPaths, err := filepath.Glob(path)
 			if err != nil {
-				// skip files that don't exist
-				continue
+				// If glob expansion fails, treat as literal path
+				expandedPaths = []string{path}
 			}
 
-			if fileInfo.IsDir() {
-				// skip directories
-				continue
+			// If no matches found, try as literal path
+			if len(expandedPaths) == 0 {
+				expandedPaths = []string{path}
 			}
 
-			hash, err := files.HashFileSha256(path)
-			if err != nil {
-				return nil, fmt.Errorf("failed to hash artifact file: %w", err)
-			}
+			for _, expandedPath := range expandedPaths {
+				// Check if file exists
+				fileInfo, err := os.Stat(expandedPath)
+				if err != nil {
+					// skip files that don't exist
+					continue
+				}
 
-			// Create component for this artifact
-			component := cdx.Component{
-				Type: cdx.ComponentTypeFile,
-				Name: filepath.Base(path),
-				Hashes: &[]cdx.Hash{
-					{
-						Algorithm: cdx.HashAlgoSHA256,
-						Value:     hash,
+				if fileInfo.IsDir() {
+					// skip directories
+					continue
+				}
+
+				hash, err := files.HashFileSha256(expandedPath)
+				if err != nil {
+					return nil, fmt.Errorf("failed to hash artifact file: %w", err)
+				}
+
+				// Create component for this artifact
+				component := cdx.Component{
+					Type: cdx.ComponentTypeFile,
+					Name: filepath.Base(expandedPath),
+					Hashes: &[]cdx.Hash{
+						{
+							Algorithm: cdx.HashAlgoSHA256,
+							Value:     hash,
+						},
 					},
-				},
-			}
+				}
 
-			components = append(components, component)
+				components = append(components, component)
+			}
 		}
 	}
 
