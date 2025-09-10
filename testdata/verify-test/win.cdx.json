@@ -1,0 +1,82 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "publisher": "https://sbom.observer",
+          "name": "observer",
+          "version": "dev",
+          "externalReferences": [
+            {
+              "url": "https://github.com/sbom-observer/observer-cli",
+              "type": "website"
+            }
+          ]
+        }
+      ]
+    },
+    "component": {
+      "bom-ref": "f1e45984-997d-4ae1-93df-4974b68961b7",
+      "type": "application",
+      "manufacturer": {
+        "name": "",
+        "url": [
+          "https://github.com/bitfront-se/minimal-windows-example"
+        ]
+      },
+      "name": "minimal-windows-example",
+      "version": "1.0.0",
+      "description": "A minimal Windows example",
+      "components": [
+        {
+          "type": "file",
+          "name": "libcrypto-3-x64.dll",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "8e7e609b323038df7db7df21d739840a263526ab3101abb6733c3dca8294ec5c"
+            }
+          ]
+        },
+        {
+          "type": "file",
+          "name": "libssl-3-x64.dll",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "9ef1390068aea386c458abdf8c36b494b67d72ff92646b35d452296e7a64d243"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "64f4ddde-5929-4c0f-a0dd-424fa04c6e33",
+      "type": "application",
+      "manufacturer": {
+        "name": "OpenSSL Project",
+        "url": [
+          "https://www.openssl.org/"
+        ]
+      },
+      "name": "openssl",
+      "version": "3.4.0",
+      "description": "OpenSSL is a cryptography library that provides a wide range of cryptographic functions."
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "f1e45984-997d-4ae1-93df-4974b68961b7",
+      "dependsOn": [
+        "64f4ddde-5929-4c0f-a0dd-424fa04c6e33"
+      ]
+    }
+  ]
+}
