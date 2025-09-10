@@ -26,6 +26,11 @@ func (s *TrivyScanner) Id() string {
 }
 
 func (s *TrivyScanner) IsAvailable() bool {
+	// check if ENV TRIVY_DISABLED is set
+	if os.Getenv("TRIVY_DISABLED") != "" {
+		return false
+	}
+
 	// resolve absolute path to trivy binary
 	trivyPath, err := exec.LookPath("trivy")
 	if err != nil {
@@ -49,6 +54,10 @@ func (s *TrivyScanner) IsAvailable() bool {
 }
 
 func (s *TrivyScanner) LogInstructions() {
+	if os.Getenv("TRIVY_DISABLED") != "" {
+		return
+	}
+
 	log.Warn("Trivy is not installed (found in the current PATH) and is the preferred scanner for the current ecosystem. Please install it with instructions from https://trivy.dev/latest/getting-started/installation/")
 }
 
