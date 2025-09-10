@@ -37,3 +37,4 @@ tmp
 *.sh
 test.json
 .vscode
+test.cdx.json

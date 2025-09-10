@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"time"
 
 	"github.com/sbom-observer/observer-cli/pkg/cdxutil"
@@ -65,6 +66,11 @@ func (s *TrivyScanner) Scan(target *ScanTarget) error {
 	if err != nil {
 		return fmt.Errorf("failed to read subdirectories in %s: %w", target.Path, err)
 	}
+
+	// Do not skip node_modules directory, so filter it out from subs
+	subs = slices.DeleteFunc(subs, func(sub string) bool {
+		return filepath.Base(sub) == "node_modules"
+	})
 
 	for _, sub := range subs {
 		args = append(args, "--skip-dirs", sub)
