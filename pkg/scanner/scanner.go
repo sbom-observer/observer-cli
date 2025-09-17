@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/osv-scalibr/extractor/filesystem"
 	"github.com/google/osv-scalibr/extractor/filesystem/simplefileapi"
+	"github.com/sbom-observer/observer-cli/pkg/scanner/windows"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
 	"github.com/sbom-observer/observer-cli/pkg/log"
@@ -36,10 +37,16 @@ const EcosystemBuildObserver Ecosystem = "build-observer"
 const EcosystemObserver Ecosystem = "observer"
 const EcosystemUnknownBinary Ecosystem = "binary"
 const EcosystemSBOM Ecosystem = "sbom"
+const EcosystemWindowsBinary Ecosystem = "windows-binary"
 
 // TODO: expand
 
 const EcosystemUnknown Ecosystem = "unknown"
+
+var DefaultSkipDirs = types.SliceSet[string]{
+	"node_modules",
+	".git",
+}
 
 type ScanTarget struct {
 	Path    string
@@ -82,9 +89,7 @@ func FindScanTargets(initialTarget string, maxDepth uint) (map[string]*ScanTarge
 			return nil
 		}
 
-		// TODO: skip common dirs
-		// TODO: slice set
-		if file.Name() == "node_modules" {
+		if DefaultSkipDirs.Contains(file.Name()) {
 			return filepath.SkipDir
 		}
 
@@ -165,6 +170,13 @@ func IdentifyEcosystem(absolutePath string, relativePath string, fileName string
 	for _, ext := range []string{".jar", ".war", ".ear", ".jmod", ".par", ".sar", ".jpi", ".hpi", ".lpkg", ".nar"} {
 		if fileExtension == ext {
 			return EcosystemJavaBinary
+		}
+	}
+
+	// windows binary
+	for _, ext := range windows.PeExtensions {
+		if fileExtension == ext {
+			return EcosystemWindowsBinary
 		}
 	}
 
@@ -293,6 +305,10 @@ func scannersForEcosystem(ecosystem Ecosystem) []RepoScanner {
 		return []RepoScanner{NewSBOMScalibrRepoScanner()}
 	case EcosystemPython:
 		return []RepoScanner{NewDefaultScalibrRepoScanner()}
+	case EcosystemWindowsBinary:
+		return []RepoScanner{
+			&WindowsBinaryScanner{},
+		}
 	default:
 		return []RepoScanner{
 			NewWithFallbackScanner(&TrivyScanner{}, NewDefaultScalibrRepoScanner()),

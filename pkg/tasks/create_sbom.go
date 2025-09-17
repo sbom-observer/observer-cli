@@ -4,20 +4,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
 	cdx "github.com/CycloneDX/cyclonedx-go"
-	"github.com/sbom-observer/observer-cli/pkg/cdxutil"
 	"github.com/sbom-observer/observer-cli/pkg/files"
+	"github.com/sbom-observer/observer-cli/pkg/ids"
 	"github.com/sbom-observer/observer-cli/pkg/log"
+	"github.com/sbom-observer/observer-cli/pkg/mergex"
 	"github.com/sbom-observer/observer-cli/pkg/scanner"
 	"github.com/sbom-observer/observer-cli/pkg/types"
 )
 
 func CreateFilesystemSBOM(paths []string, vendorPaths []string, flagDepth uint, flagMerge bool, flagArtifacts []string) ([]*cdx.BOM, error) {
-	var err error
-
 	if len(paths) < 1 {
 		log.Fatal("the path to a source repository is required as an argument")
 	}
@@ -86,9 +86,9 @@ func CreateFilesystemSBOM(paths []string, vendorPaths []string, flagDepth uint, 
 		log.Infof("Generating SBOM for '%s'", target.Path)
 		log.Debug("Generating SBOM", "path", target.Path, "target", target.Files)
 
-		for _, scanner := range scanner.ScannersForTarget(*target) {
-			log.Debug("running scanner", "id", scanner.Id())
-			err := scanner.Scan(target)
+		for _, filesystemScanner := range scanner.ScannersForTarget(*target) {
+			log.Debug("running scanner", "id", filesystemScanner.Id())
+			err := filesystemScanner.Scan(target)
 			if err != nil {
 				log.Fatal("failed to create SBOM for repository", "path", target.Path, "err", err)
 			}
@@ -100,12 +100,22 @@ func CreateFilesystemSBOM(paths []string, vendorPaths []string, flagDepth uint, 
 		}
 
 		// merge results and add metadata
-		log.Debugf("merging %d BOMs for target %s", len(target.Results), target.Path)
+		target.Merged = mergex.MergeBoms(target.Results)
 
-		target.Merged, err = cdxutil.DestructiveMergeSBOMs(target.Config, target.Results, true)
-		if err != nil {
-			log.Fatal("failed to merge SBOMs for target", "target", target.Path, "err", err)
+		// a target should always produce a BOM
+		if target.Merged == nil {
+			target.Merged = cdx.NewBOM()
+			target.Merged.Metadata = &cdx.Metadata{
+				Component: &cdx.Component{
+					BOMRef: ids.NextUUID(),
+					Type:   cdx.ComponentTypeApplication,
+				},
+			}
+			target.Merged.Components = &[]cdx.Component{}
 		}
+
+		// apply any overrides from config
+		applyConfiguration(target.Config, target.Merged)
 
 		log.Debugf("merged %d BOMs for target %s -> %s@%s", len(target.Results), target.Path, target.Merged.Metadata.Component.Name, target.Merged.Metadata.Component.Version)
 	}
@@ -136,11 +146,11 @@ func CreateFilesystemSBOM(paths []string, vendorPaths []string, flagDepth uint, 
 			boms = append(boms, target.Merged)
 		}
 
-		// TODO: replace with an additive merge
-		merged, err := cdxutil.DestructiveMergeSBOMs(targetsToMerge[0].Config, boms, false)
-		if err != nil {
-			log.Fatal("failed to merge SBOMs for config", "config", targetsToMerge[0].Merged.Metadata.Component.Name, "err", err)
-		}
+		// merge the BOMs for all targets
+		merged := mergex.MergeBomsAsDependency(boms)
+
+		// apply any overrides from the target config
+		applyConfiguration(targetsToMerge[0].Config, merged)
 
 		log.Debugf("merged %d BOMs to %s %s", len(boms), merged.Metadata.Component.Name, merged.Metadata.Component.Version)
 
@@ -181,6 +191,94 @@ func CreateFilesystemSBOM(paths []string, vendorPaths []string, flagDepth uint, 
 	}
 
 	return results, nil
+}
+
+func applyConfiguration(config types.ScanConfig, merged *cdx.BOM) {
+	// set metadata from config
+	if config.Component.BOMRef != "" {
+		merged.Metadata.Component.BOMRef = config.Component.BOMRef
+	}
+
+	if config.Component.Type != "" {
+		merged.Metadata.Component.Type = config.Component.Type
+	}
+	if config.Component.Name != "" {
+		merged.Metadata.Component.Name = config.Component.Name
+	}
+	if config.Component.Group != "" {
+		merged.Metadata.Component.Group = config.Component.Group
+	}
+	if config.Component.Version != "" {
+		merged.Metadata.Component.Version = config.Component.Version
+	}
+	if config.Component.Description != "" {
+		merged.Metadata.Component.Description = config.Component.Description
+	}
+	if config.Component.Licenses != nil {
+		merged.Metadata.Component.Licenses = config.Component.Licenses
+	}
+	if config.Component.Manufacturer != nil {
+		merged.Metadata.Component.Manufacturer = config.Component.Manufacturer
+	}
+	if config.Component.Supplier != nil {
+		merged.Metadata.Component.Supplier = config.Component.Supplier
+	}
+
+	// author
+	if config.Author.Name != "" {
+		merged.Metadata.Authors = &[]cdx.OrganizationalContact{
+			config.Author,
+		}
+	}
+
+	// supplier
+	if config.Supplier.Name != "" {
+		merged.Metadata.Supplier = &config.Supplier
+	}
+
+	// manufacturer
+	if config.Manufacturer.Name != "" {
+		merged.Metadata.Manufacturer = &config.Manufacturer
+	}
+
+	// add 'observer' tool if missing
+	toolFound := false
+	if merged.Metadata.Tools != nil && merged.Metadata.Tools.Components != nil {
+		for _, tool := range *merged.Metadata.Tools.Components {
+			if tool.Name == "observer" {
+				toolFound = true
+			}
+		}
+	}
+
+	if !toolFound {
+		if merged.Metadata.Tools == nil {
+			merged.Metadata.Tools = &cdx.ToolsChoice{}
+		}
+		if merged.Metadata.Tools.Components == nil {
+			merged.Metadata.Tools.Components = &[]cdx.Component{}
+		}
+		*merged.Metadata.Tools.Components = append(*merged.Metadata.Tools.Components, cdx.Component{
+			Type: cdx.ComponentTypeApplication,
+			Name: "observer",
+			// Description: "sbom.observer SBOM generator",
+			Publisher: "https://sbom.observer",
+			Version:   types.Version,
+			ExternalReferences: &[]cdx.ExternalReference{
+				{
+					Type: cdx.ERTypeWebsite,
+					URL:  "https://github.com/sbom-observer/observer-cli",
+				},
+			},
+		})
+	}
+
+	// remove root component from components
+	if merged.Metadata != nil && merged.Metadata.Component != nil && merged.Components != nil {
+		*merged.Components = slices.DeleteFunc(*merged.Components, func(component cdx.Component) bool {
+			return component.Name == merged.Metadata.Component.Name && component.Group == merged.Metadata.Component.Group && component.Version == merged.Metadata.Component.Version
+		})
+	}
 }
 
 func resolvePaths(paths []string) []string {

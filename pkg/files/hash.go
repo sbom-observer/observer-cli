@@ -22,3 +22,9 @@ func HashFileSha256(filePath string) (string, error) {
 
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
+
+// HashFileSha256FromBytes calculates the SHA-256 hash of byte data
+func HashFileSha256FromBytes(data []byte) (string, error) {
+	hash := sha256.Sum256(data)
+	return hex.EncodeToString(hash[:]), nil
+}

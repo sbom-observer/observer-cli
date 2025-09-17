@@ -27,7 +27,7 @@ var diffCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(diffCmd)
+	// diffCmd is now added to sbomCmd in sbom.go
 	diffCmd.Flags().BoolP("all", "a", false, "Output all components, not just the differences (default: false)")
 	diffCmd.Flags().StringP("output", "o", "", "Output file for the results (default: stdout)")
 	diffCmd.Flags().BoolP("include-purl", "p", false, "Include PURLs in the output (default: false)")

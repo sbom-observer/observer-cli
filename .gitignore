@@ -3,8 +3,6 @@
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
 # Binaries for programs and plugins
-*.exe
-*.exe~
 *.so
 *.dylib
 
@@ -38,3 +36,5 @@ test.json
 .vscode
 test.cdx.json
 observer-cli
+temp
+spec
