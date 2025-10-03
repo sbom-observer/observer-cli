@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/sbom-observer/observer-cli/pkg/log"
 )
 
 type Namespace struct {
@@ -105,12 +107,14 @@ type SpeculateVulnerabilitySummary struct {
 }
 
 func (c *ObserverClient) AnalyzeSBOM(filename string) (*SpeculateResponse, error) {
-	endpoint := fmt.Sprintf("%s/v1/%s/_analyze", c.Config.Endpoint, c.Config.Namespace)
+	endpoint := fmt.Sprintf("%s/api/v1/%s/_analyze", c.Config.Endpoint, c.Config.Namespace)
 
 	// if token is not set, use the public endpoint
 	if c.Config.Token == "" {
-		endpoint = fmt.Sprintf("%s/_analyzer/uploads?complete=true", c.Config.Endpoint)
+		endpoint = "https://api.sbom.observer/_analyzer/uploads?complete=true"
 	}
+
+	log.Debug("analyzing SBOM", "endpoint", endpoint)
 
 	resultBody, err := c.uploadFile(endpoint, filename)
 	if err != nil {

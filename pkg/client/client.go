@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/sbom-observer/observer-cli/pkg/log"
 	"github.com/sbom-observer/observer-cli/pkg/types"
@@ -22,12 +23,16 @@ type Config struct {
 }
 
 var DefaultConfig = Config{
-	Endpoint:  "https://api.sbom.observer",
+	Endpoint:  "https://cloud.sbom.observer",
 	Namespace: "default",
 }
 
 type ObserverClient struct {
 	Config Config
+}
+
+func sanitizeEnvVar(value string) string {
+	return strings.ReplaceAll(value, "/", "")
 }
 
 func loadEnvironmentConfig(config Config) Config {
@@ -36,11 +41,11 @@ func loadEnvironmentConfig(config Config) Config {
 	}
 
 	if v := os.Getenv("OBSERVER_TOKEN"); v != "" {
-		config.Token = v
+		config.Token = sanitizeEnvVar(v)
 	}
 
 	if v := os.Getenv("OBSERVER_NAMESPACE"); v != "" {
-		config.Namespace = v
+		config.Namespace = sanitizeEnvVar(v)
 	}
 
 	return config
@@ -193,11 +198,11 @@ func (c *ObserverClient) uploadFile(url string, filename string) ([]byte, error)
 }
 
 func (c *ObserverClient) UploadSource(filename string, source FileSource) error {
-	_, err := c.uploadSource(fmt.Sprintf("%s/v1/%s/attestations", c.Config.Endpoint, c.Config.Namespace), filename, source)
+	_, err := c.uploadSource(fmt.Sprintf("%s/api/v1/%s/attestations", c.Config.Endpoint, c.Config.Namespace), filename, source)
 	return err
 }
 
 func (c *ObserverClient) UploadFile(filename string) error {
-	_, err := c.uploadFile(fmt.Sprintf("%s/v1/%s/attestations", c.Config.Endpoint, c.Config.Namespace), filename)
+	_, err := c.uploadFile(fmt.Sprintf("%s/api/v1/%s/attestations", c.Config.Endpoint, c.Config.Namespace), filename)
 	return err
 }
