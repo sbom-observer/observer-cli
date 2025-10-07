@@ -72,7 +72,7 @@ sboms:
     artifacts: binary
     documents:
       - "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.cdx.json"
-    cmd: './dist/observer_linux_amd64_v1/observer'
+    cmd: 'observer_linux_amd64_v1/observer'
     args: [ "fs", "-o", "$document", "{{ .ArtifactPath | abs | dir }}/observer.yml", "{{ .ArtifactPath | abs }}" ]
 
 changelog:
