@@ -116,7 +116,7 @@ func (c *ObserverClient) AnalyzeSBOM(filename string) (*SpeculateResponse, error
 
 	log.Debug("analyzing SBOM", "endpoint", endpoint)
 
-	resultBody, err := c.uploadFile(endpoint, filename)
+	resultBody, err := c.uploadFile(endpoint, filename, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -19,9 +19,16 @@ var uploadCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(uploadCmd)
+
+	uploadCmd.Flags().StringP("retention-policy", "p", "", "Retention policy for the uploaded SBOM")
+	uploadCmd.Flags().StringP("retention-keep", "n", "1", "Retain N versions of the SBOM")
+	uploadCmd.Flags().StringP("retention-keep-dependencies", "d", "true", "Retain SBOMs that have dependencies")
 }
 
 func UploadCommand(cmd *cobra.Command, args []string) {
+	flagRetentionPolicy, _ := cmd.Flags().GetString("retention-policy")
+	flagRetentionKeep, _ := cmd.Flags().GetString("retention-keep")
+	flagRetentionKeepDependencies, _ := cmd.Flags().GetString("retention-keep-dependencies")
 	flagDebug, _ := cmd.Flags().GetBool("debug")
 	flagSilent, _ := cmd.Flags().GetBool("silent")
 	flagSilent = flagSilent || flagDebug
@@ -34,8 +41,22 @@ func UploadCommand(cmd *cobra.Command, args []string) {
 
 	progress := log.NewProgressBar(int64(len(args)), "Uploading BOMs", flagSilent)
 
+	fields := map[string]string{}
+
+	if flagRetentionPolicy != "" {
+		fields["retention-policy"] = flagRetentionPolicy
+
+		if flagRetentionKeep != "" {
+			fields["retention-keep"] = flagRetentionKeep
+		}
+
+		if flagRetentionKeepDependencies != "" {
+			fields["retention-keep-dependencies"] = flagRetentionKeepDependencies
+		}
+	}
+
 	for _, file := range args {
-		err := c.UploadFile(file)
+		err := c.UploadFile(file, fields)
 		if err != nil {
 			log.Error("error uploading", "file", file, "err", err)
 			os.Exit(1)

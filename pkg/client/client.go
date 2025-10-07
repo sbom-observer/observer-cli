@@ -104,13 +104,13 @@ func NewObserverClient() *ObserverClient {
 	return NewObserverClientWithConfig(loadDefaultConfig())
 }
 
-func (c *ObserverClient) UploadDirectory(directoryPath string) error {
+func (c *ObserverClient) UploadDirectory(directoryPath string, fields map[string]string) error {
 	return filepath.Walk(directoryPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if !info.IsDir() {
-			err = c.UploadFile(path)
+			err = c.UploadFile(path, fields)
 			if err != nil {
 				return err
 			}
@@ -121,12 +121,19 @@ func (c *ObserverClient) UploadDirectory(directoryPath string) error {
 
 type FileSource func(w io.Writer) error
 
-func (c *ObserverClient) uploadSource(url string, filename string, source FileSource) ([]byte, error) {
+func (c *ObserverClient) uploadSource(url string, filename string, source FileSource, fields map[string]string) ([]byte, error) {
 	log.Debug("uploading file", "filename", filename)
 
 	// create multipart body
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
+
+	// add optional fields (retention-policy, etc)
+	for key, value := range fields {
+		writer.WriteField(key, value)
+	}
+
+	writer.WriteField("namespace", c.Config.Namespace)
 
 	part, _ := writer.CreateFormFile("files", filename)
 
@@ -179,7 +186,7 @@ func (c *ObserverClient) uploadSource(url string, filename string, source FileSo
 	return responseBody, nil
 }
 
-func (c *ObserverClient) uploadFile(url string, filename string) ([]byte, error) {
+func (c *ObserverClient) uploadFile(url string, filename string, fields map[string]string) ([]byte, error) {
 	return c.uploadSource(url, filename, func(w io.Writer) error {
 		file, err := os.Open(filename)
 		if err != nil {
@@ -193,16 +200,16 @@ func (c *ObserverClient) uploadFile(url string, filename string) ([]byte, error)
 		}
 
 		return nil
-	})
+	}, fields)
 
 }
 
-func (c *ObserverClient) UploadSource(filename string, source FileSource) error {
-	_, err := c.uploadSource(fmt.Sprintf("%s/api/v1/%s/attestations", c.Config.Endpoint, c.Config.Namespace), filename, source)
+func (c *ObserverClient) UploadSource(filename string, source FileSource, fields map[string]string) error {
+	_, err := c.uploadSource(fmt.Sprintf("%s/api/v1/%s/attestations", c.Config.Endpoint, c.Config.Namespace), filename, source, fields)
 	return err
 }
 
-func (c *ObserverClient) UploadFile(filename string) error {
-	_, err := c.uploadFile(fmt.Sprintf("%s/api/v1/%s/attestations", c.Config.Endpoint, c.Config.Namespace), filename)
+func (c *ObserverClient) UploadFile(filename string, fields map[string]string) error {
+	_, err := c.uploadFile(fmt.Sprintf("%s/api/v1/%s/attestations", c.Config.Endpoint, c.Config.Namespace), filename, fields)
 	return err
 }

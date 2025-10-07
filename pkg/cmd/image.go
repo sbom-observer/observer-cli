@@ -81,7 +81,7 @@ func ImageCommand(cmd *cobra.Command, args []string) {
 		progress := log.NewProgressBar(int64(len(filesToUpload)), "Uploading BOMs", flagSilent)
 
 		for _, file := range filesToUpload {
-			err = c.UploadFile(file)
+			err = c.UploadFile(file, nil)
 			if err != nil {
 				log.Error("error uploading", "file", file, "err", err)
 				os.Exit(1)
