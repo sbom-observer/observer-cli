@@ -4,11 +4,11 @@ import (
 	"github.com/CycloneDX/cyclonedx-go"
 )
 
-// mergeComponent merges two cyclonedx.Component structs non-destructively.
+// MergeComponent merges two cyclonedx.Component structs non-destructively.
 // For non-array fields, the first input (a) takes precedence.
 // For array fields, items from both inputs are combined.
 // Returns a new Component struct without modifying the inputs.
-func mergeComponent(a, b cyclonedx.Component) cyclonedx.Component {
+func MergeComponent(a, b cyclonedx.Component) cyclonedx.Component {
 	result := cyclonedx.Component{}
 
 	// Simple string fields - first input wins
@@ -317,7 +317,7 @@ func mergeEvidence(a, b *cyclonedx.Evidence) *cyclonedx.Evidence {
 		result.Identity = mergeEvidenceIdentitySlice(result.Identity, b.Identity)
 		result.Occurrences = mergeEvidenceOccurrenceSlice(result.Occurrences, b.Occurrences)
 		result.Copyright = mergeCopyrightSlice(result.Copyright, b.Copyright)
-		
+
 		// For non-arrays, use first input precedence but fill if empty
 		if result.Callstack == nil {
 			result.Callstack = b.Callstack
@@ -394,7 +394,7 @@ func mergeStringSlice(a, b *[]string) *[]string {
 	if a == nil && b == nil {
 		return nil
 	}
-	
+
 	var result []string
 	if a != nil {
 		result = append(result, *a...)
@@ -402,7 +402,7 @@ func mergeStringSlice(a, b *[]string) *[]string {
 	if b != nil {
 		result = append(result, *b...)
 	}
-	
+
 	if len(result) == 0 {
 		return nil
 	}
@@ -413,7 +413,7 @@ func mergeOrganizationalContactSlice(a, b *[]cyclonedx.OrganizationalContact) *[
 	if a == nil && b == nil {
 		return nil
 	}
-	
+
 	var result []cyclonedx.OrganizationalContact
 	if a != nil {
 		result = append(result, *a...)
@@ -421,7 +421,7 @@ func mergeOrganizationalContactSlice(a, b *[]cyclonedx.OrganizationalContact) *[
 	if b != nil {
 		result = append(result, *b...)
 	}
-	
+
 	if len(result) == 0 {
 		return nil
 	}
@@ -432,7 +432,7 @@ func mergeHashSlice(a, b *[]cyclonedx.Hash) *[]cyclonedx.Hash {
 	if a == nil && b == nil {
 		return nil
 	}
-	
+
 	var result []cyclonedx.Hash
 	if a != nil {
 		result = append(result, *a...)
@@ -440,7 +440,7 @@ func mergeHashSlice(a, b *[]cyclonedx.Hash) *[]cyclonedx.Hash {
 	if b != nil {
 		result = append(result, *b...)
 	}
-	
+
 	if len(result) == 0 {
 		return nil
 	}
@@ -451,7 +451,7 @@ func mergeExternalReferenceSlice(a, b *[]cyclonedx.ExternalReference) *[]cyclone
 	if a == nil && b == nil {
 		return nil
 	}
-	
+
 	var result []cyclonedx.ExternalReference
 	if a != nil {
 		result = append(result, *a...)
@@ -459,7 +459,7 @@ func mergeExternalReferenceSlice(a, b *[]cyclonedx.ExternalReference) *[]cyclone
 	if b != nil {
 		result = append(result, *b...)
 	}
-	
+
 	if len(result) == 0 {
 		return nil
 	}
@@ -470,34 +470,34 @@ func mergePropertySlice(a, b *[]cyclonedx.Property) *[]cyclonedx.Property {
 	if a == nil && b == nil {
 		return nil
 	}
-	
+
 	// Use map to merge by key - first input wins for duplicate keys
 	propMap := make(map[string]cyclonedx.Property)
-	
+
 	// First add all properties from b
 	if b != nil {
 		for _, prop := range *b {
 			propMap[prop.Name] = prop
 		}
 	}
-	
+
 	// Then add all properties from a (overwriting any duplicates from b)
 	if a != nil {
 		for _, prop := range *a {
 			propMap[prop.Name] = prop
 		}
 	}
-	
+
 	if len(propMap) == 0 {
 		return nil
 	}
-	
+
 	// Convert back to slice
 	result := make([]cyclonedx.Property, 0, len(propMap))
 	for _, prop := range propMap {
 		result = append(result, prop)
 	}
-	
+
 	return &result
 }
 
@@ -531,7 +531,7 @@ func mergeComponentSlice(a, b *[]cyclonedx.Component) *[]cyclonedx.Component {
 			if comp.BOMRef != "" {
 				if existing, exists := componentMap[comp.BOMRef]; exists {
 					// Merge components with same BOMRef
-					componentMap[comp.BOMRef] = mergeComponent(existing, comp)
+					componentMap[comp.BOMRef] = MergeComponent(existing, comp)
 				} else {
 					// Add new component with unique BOMRef
 					componentMap[comp.BOMRef] = comp
@@ -541,7 +541,7 @@ func mergeComponentSlice(a, b *[]cyclonedx.Component) *[]cyclonedx.Component {
 				key := comp.Name + "|" + comp.Version + "|" + comp.PackageURL
 				if existing, exists := componentMap[key]; exists {
 					// Merge components with same key
-					componentMap[key] = mergeComponent(existing, comp)
+					componentMap[key] = MergeComponent(existing, comp)
 				} else {
 					componentMap[key] = comp
 				}
@@ -567,7 +567,7 @@ func mergeCommitSlice(a, b *[]cyclonedx.Commit) *[]cyclonedx.Commit {
 	if a == nil && b == nil {
 		return nil
 	}
-	
+
 	var result []cyclonedx.Commit
 	if a != nil {
 		result = append(result, *a...)
@@ -575,7 +575,7 @@ func mergeCommitSlice(a, b *[]cyclonedx.Commit) *[]cyclonedx.Commit {
 	if b != nil {
 		result = append(result, *b...)
 	}
-	
+
 	if len(result) == 0 {
 		return nil
 	}
@@ -586,7 +586,7 @@ func mergePatchSlice(a, b *[]cyclonedx.Patch) *[]cyclonedx.Patch {
 	if a == nil && b == nil {
 		return nil
 	}
-	
+
 	var result []cyclonedx.Patch
 	if a != nil {
 		result = append(result, *a...)
@@ -594,7 +594,7 @@ func mergePatchSlice(a, b *[]cyclonedx.Patch) *[]cyclonedx.Patch {
 	if b != nil {
 		result = append(result, *b...)
 	}
-	
+
 	if len(result) == 0 {
 		return nil
 	}
@@ -605,7 +605,7 @@ func mergeEvidenceIdentitySlice(a, b *[]cyclonedx.EvidenceIdentity) *[]cyclonedx
 	if a == nil && b == nil {
 		return nil
 	}
-	
+
 	var result []cyclonedx.EvidenceIdentity
 	if a != nil {
 		result = append(result, *a...)
@@ -613,7 +613,7 @@ func mergeEvidenceIdentitySlice(a, b *[]cyclonedx.EvidenceIdentity) *[]cyclonedx
 	if b != nil {
 		result = append(result, *b...)
 	}
-	
+
 	if len(result) == 0 {
 		return nil
 	}
@@ -624,7 +624,7 @@ func mergeEvidenceOccurrenceSlice(a, b *[]cyclonedx.EvidenceOccurrence) *[]cyclo
 	if a == nil && b == nil {
 		return nil
 	}
-	
+
 	var result []cyclonedx.EvidenceOccurrence
 	if a != nil {
 		result = append(result, *a...)
@@ -632,7 +632,7 @@ func mergeEvidenceOccurrenceSlice(a, b *[]cyclonedx.EvidenceOccurrence) *[]cyclo
 	if b != nil {
 		result = append(result, *b...)
 	}
-	
+
 	if len(result) == 0 {
 		return nil
 	}
@@ -643,7 +643,7 @@ func mergeCopyrightSlice(a, b *[]cyclonedx.Copyright) *[]cyclonedx.Copyright {
 	if a == nil && b == nil {
 		return nil
 	}
-	
+
 	var result []cyclonedx.Copyright
 	if a != nil {
 		result = append(result, *a...)
@@ -651,7 +651,7 @@ func mergeCopyrightSlice(a, b *[]cyclonedx.Copyright) *[]cyclonedx.Copyright {
 	if b != nil {
 		result = append(result, *b...)
 	}
-	
+
 	if len(result) == 0 {
 		return nil
 	}

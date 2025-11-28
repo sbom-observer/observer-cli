@@ -40,7 +40,7 @@ func mergeMetadata(a, b *cyclonedx.Metadata) *cyclonedx.Metadata {
 	if result.Component == nil {
 		result.Component = copyComponent(b.Component)
 	} else if b.Component != nil {
-		merged := mergeComponent(*result.Component, *b.Component)
+		merged := MergeComponent(*result.Component, *b.Component)
 		result.Component = &merged
 	}
 
@@ -191,8 +191,8 @@ func copyComponent(c *cyclonedx.Component) *cyclonedx.Component {
 	if c == nil {
 		return nil
 	}
-	// Use existing mergeComponent with empty second param to get a deep copy
-	copied := mergeComponent(*c, cyclonedx.Component{})
+	// Use existing MergeComponent with empty second param to get a deep copy
+	copied := MergeComponent(*c, cyclonedx.Component{})
 	return &copied
 }
 

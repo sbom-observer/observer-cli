@@ -49,16 +49,16 @@ func TestMergeComponent_SimpleFields(t *testing.T) {
 			},
 		},
 		{
-			name: "empty inputs",
-			a:    cyclonedx.Component{},
-			b:    cyclonedx.Component{},
+			name:     "empty inputs",
+			a:        cyclonedx.Component{},
+			b:        cyclonedx.Component{},
 			expected: cyclonedx.Component{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := mergeComponent(tt.a, tt.b)
+			result := MergeComponent(tt.a, tt.b)
 			assert.Equal(t, tt.expected.Name, result.Name)
 			assert.Equal(t, tt.expected.Version, result.Version)
 			assert.Equal(t, tt.expected.Description, result.Description)
@@ -75,7 +75,7 @@ func TestMergeComponent_ArrayFields(t *testing.T) {
 			OmniborID: &[]string{"id3", "id4"},
 		}
 
-		result := mergeComponent(a, b)
+		result := MergeComponent(a, b)
 
 		assert.NotNil(t, result.OmniborID)
 		assert.Equal(t, []string{"id1", "id2", "id3", "id4"}, *result.OmniborID)
@@ -93,7 +93,7 @@ func TestMergeComponent_ArrayFields(t *testing.T) {
 			},
 		}
 
-		result := mergeComponent(a, b)
+		result := MergeComponent(a, b)
 
 		assert.NotNil(t, result.Hashes)
 		assert.Len(t, *result.Hashes, 2)
@@ -115,17 +115,17 @@ func TestMergeComponent_ArrayFields(t *testing.T) {
 			},
 		}
 
-		result := mergeComponent(a, b)
+		result := MergeComponent(a, b)
 
 		assert.NotNil(t, result.Properties)
 		assert.Len(t, *result.Properties, 2)
-		
+
 		// Convert to map for easier testing since order is not guaranteed
 		propMap := make(map[string]string)
 		for _, prop := range *result.Properties {
 			propMap[prop.Name] = prop.Value
 		}
-		
+
 		assert.Equal(t, "value1", propMap["prop1"])
 		assert.Equal(t, "value2", propMap["prop2"])
 	})
@@ -140,8 +140,8 @@ func TestMergeComponent_NilArrays(t *testing.T) {
 			OmniborID: nil,
 		}
 
-		result := mergeComponent(a, b)
-		
+		result := MergeComponent(a, b)
+
 		assert.NotNil(t, result.OmniborID)
 		assert.Equal(t, []string{"id1"}, *result.OmniborID)
 	})
@@ -150,8 +150,8 @@ func TestMergeComponent_NilArrays(t *testing.T) {
 		a := cyclonedx.Component{OmniborID: nil}
 		b := cyclonedx.Component{OmniborID: nil}
 
-		result := mergeComponent(a, b)
-		
+		result := MergeComponent(a, b)
+
 		assert.Nil(t, result.OmniborID)
 	})
 }
@@ -171,7 +171,7 @@ func TestMergeComponent_NestedComponents(t *testing.T) {
 			},
 		}
 
-		result := mergeComponent(a, b)
+		result := MergeComponent(a, b)
 
 		assert.Equal(t, "Parent A", result.Name) // First input wins
 		assert.NotNil(t, result.Components)
@@ -189,9 +189,9 @@ func TestMergeOrganizationalEntity(t *testing.T) {
 		expected *cyclonedx.OrganizationalEntity
 	}{
 		{
-			name: "both nil",
-			a:    nil,
-			b:    nil,
+			name:     "both nil",
+			a:        nil,
+			b:        nil,
 			expected: nil,
 		},
 		{
@@ -374,9 +374,9 @@ func TestMergeLicenses(t *testing.T) {
 		b := &cyclonedx.Licenses{
 			{Expression: "MIT"},
 		}
-		
+
 		result := mergeLicenses(nil, b)
-		
+
 		assert.NotNil(t, result)
 		assert.Len(t, *result, 1)
 		assert.Equal(t, "MIT", (*result)[0].Expression)
@@ -389,9 +389,9 @@ func TestMergeLicenses(t *testing.T) {
 		b := &cyclonedx.Licenses{
 			{Expression: "Apache-2.0"},
 		}
-		
+
 		result := mergeLicenses(a, b)
-		
+
 		assert.NotNil(t, result)
 		assert.Len(t, *result, 2)
 		assert.Equal(t, "MIT", (*result)[0].Expression)
@@ -413,27 +413,27 @@ func TestMergeStringSlice(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name: "first nil, second has values",
-			a:    nil,
-			b:    &[]string{"b1", "b2"},
+			name:     "first nil, second has values",
+			a:        nil,
+			b:        &[]string{"b1", "b2"},
 			expected: &[]string{"b1", "b2"},
 		},
 		{
-			name: "first has values, second nil",
-			a:    &[]string{"a1", "a2"},
-			b:    nil,
+			name:     "first has values, second nil",
+			a:        &[]string{"a1", "a2"},
+			b:        nil,
 			expected: &[]string{"a1", "a2"},
 		},
 		{
-			name: "both have values",
-			a:    &[]string{"a1", "a2"},
-			b:    &[]string{"b1", "b2"},
+			name:     "both have values",
+			a:        &[]string{"a1", "a2"},
+			b:        &[]string{"b1", "b2"},
 			expected: &[]string{"a1", "a2", "b1", "b2"},
 		},
 		{
-			name: "empty slices",
-			a:    &[]string{},
-			b:    &[]string{},
+			name:     "empty slices",
+			a:        &[]string{},
+			b:        &[]string{},
 			expected: nil,
 		},
 	}
@@ -473,7 +473,7 @@ func TestMergeComponent_Immutability(t *testing.T) {
 			copyB.OmniborID = &copyBSlice
 		}
 
-		result := mergeComponent(originalA, originalB)
+		result := MergeComponent(originalA, originalB)
 
 		// Verify original inputs were not modified
 		assert.Equal(t, copyA, originalA)
@@ -504,7 +504,7 @@ func TestMergeComponent_ComplexTypes(t *testing.T) {
 			},
 		}
 
-		result := mergeComponent(a, b)
+		result := MergeComponent(a, b)
 
 		assert.Equal(t, "Component A", result.Name)
 		assert.NotNil(t, result.Supplier)
@@ -525,7 +525,7 @@ func TestMergeComponent_ComplexTypes(t *testing.T) {
 			},
 		}
 
-		result := mergeComponent(a, b)
+		result := MergeComponent(a, b)
 
 		assert.Equal(t, "Component A", result.Name)
 		assert.NotNil(t, result.Supplier)
@@ -567,7 +567,7 @@ func TestMergePropertySlice(t *testing.T) {
 			{Name: "version", Value: "1.0.0"},
 		}
 		b := &[]cyclonedx.Property{
-			{Name: "env", Value: "staging"},      // duplicate key - should be overridden by a
+			{Name: "env", Value: "staging"}, // duplicate key - should be overridden by a
 			{Name: "owner", Value: "team-b"},
 		}
 
@@ -622,13 +622,13 @@ func TestMergeComponentSlice(t *testing.T) {
 				Version: "1.0.0",
 			},
 		}
-		
+
 		b := &[]cyclonedx.Component{
 			{
-				BOMRef:    "component-1", // Same BOMRef - should merge
-				Name:      "Component A Different", // Different name
-				Version:   "1.0.0", // Same version
-				Copyright: "Copyright B", // New field from B
+				BOMRef:    "component-1",                  // Same BOMRef - should merge
+				Name:      "Component A Different",        // Different name
+				Version:   "1.0.0",                        // Same version
+				Copyright: "Copyright B",                  // New field from B
 				Type:      cyclonedx.ComponentTypeLibrary, // Different type
 			},
 			{
@@ -650,11 +650,11 @@ func TestMergeComponentSlice(t *testing.T) {
 		}
 
 		// component-1 should have merged with first input winning for non-empty fields
-		assert.Equal(t, "Component A", componentMap["component-1"].Name)                     // First input wins
-		assert.Equal(t, "1.0.0", componentMap["component-1"].Version)                       // Same in both
-		assert.Equal(t, "Description A", componentMap["component-1"].Description)           // First input wins
+		assert.Equal(t, "Component A", componentMap["component-1"].Name)                      // First input wins
+		assert.Equal(t, "1.0.0", componentMap["component-1"].Version)                         // Same in both
+		assert.Equal(t, "Description A", componentMap["component-1"].Description)             // First input wins
 		assert.Equal(t, cyclonedx.ComponentTypeApplication, componentMap["component-1"].Type) // First input wins
-		assert.Equal(t, "Copyright B", componentMap["component-1"].Copyright)               // Second input fills empty
+		assert.Equal(t, "Copyright B", componentMap["component-1"].Copyright)                 // Second input fills empty
 
 		assert.Equal(t, "Component B", componentMap["component-2"].Name)
 		assert.Equal(t, "Component C", componentMap["component-3"].Name)
@@ -669,13 +669,13 @@ func TestMergeComponentSlice(t *testing.T) {
 				Description: "Description A",
 			},
 		}
-		
+
 		b := &[]cyclonedx.Component{
 			{
-				Name:       "Component A", // Same name
-				Version:    "1.0.0",      // Same version
+				Name:       "Component A",               // Same name
+				Version:    "1.0.0",                     // Same version
 				PackageURL: "pkg:npm/component-a@1.0.0", // Same PURL - should merge
-				Copyright:  "Copyright B", // New field
+				Copyright:  "Copyright B",               // New field
 			},
 			{
 				Name:       "Component B",
@@ -719,7 +719,7 @@ func TestMergeComponentSlice(t *testing.T) {
 			{BOMRef: "component-1", Name: "Component A"},
 			{BOMRef: "component-2", Name: "Component B"},
 		}
-		
+
 		b := &[]cyclonedx.Component{
 			{BOMRef: "component-3", Name: "Component C"},
 			{BOMRef: "component-4", Name: "Component D"},
@@ -760,7 +760,7 @@ func TestMergeComponentSlice(t *testing.T) {
 	t.Run("empty slices", func(t *testing.T) {
 		a := &[]cyclonedx.Component{}
 		b := &[]cyclonedx.Component{}
-		
+
 		result := mergeComponentSlice(a, b)
 		assert.Nil(t, result)
 	})
@@ -779,7 +779,7 @@ func TestMergeComponentSlice(t *testing.T) {
 				PackageURL: "pkg:npm/no-bomref@2.0.0",
 			},
 		}
-		
+
 		b := &[]cyclonedx.Component{
 			{
 				BOMRef:    "component-with-bomref", // Same BOMRef - should merge
@@ -809,7 +809,7 @@ func TestMergeComponentSlice(t *testing.T) {
 		// Convert to map for easier verification
 		componentMap := make(map[string]cyclonedx.Component)
 		noBomRefComps := make([]cyclonedx.Component, 0)
-		
+
 		for _, comp := range *result {
 			if comp.BOMRef != "" {
 				componentMap[comp.BOMRef] = comp
@@ -821,7 +821,7 @@ func TestMergeComponentSlice(t *testing.T) {
 		// Verify BOMRef component merged correctly
 		assert.Equal(t, "Component With BOMRef", componentMap["component-with-bomref"].Name)
 		assert.Equal(t, "Copyright from B", componentMap["component-with-bomref"].Copyright)
-		
+
 		assert.Equal(t, "New Component", componentMap["new-component"].Name)
 
 		// Verify non-BOMRef component merged correctly
@@ -854,7 +854,7 @@ func TestMergeComponentSlice_Immutability(t *testing.T) {
 		assert.Equal(t, "", (*originalA)[0].Copyright) // Should remain empty
 
 		assert.Equal(t, copyB[0].Name, (*originalB)[0].Name)
-		assert.Equal(t, "", (*originalB)[0].Version)                    // Should remain empty
+		assert.Equal(t, "", (*originalB)[0].Version) // Should remain empty
 		assert.Equal(t, copyB[0].Copyright, (*originalB)[0].Copyright)
 
 		// Verify result has merged content

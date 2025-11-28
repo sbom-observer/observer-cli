@@ -194,36 +194,10 @@ func CreateFilesystemSBOM(paths []string, vendorPaths []string, flagDepth uint, 
 }
 
 func applyConfiguration(config types.ScanConfig, merged *cdx.BOM) {
-	// set metadata from config
-	if config.Component.BOMRef != "" {
-		merged.Metadata.Component.BOMRef = config.Component.BOMRef
-	}
-
-	if config.Component.Type != "" {
-		merged.Metadata.Component.Type = config.Component.Type
-	}
-	if config.Component.Name != "" {
-		merged.Metadata.Component.Name = config.Component.Name
-	}
-	if config.Component.Group != "" {
-		merged.Metadata.Component.Group = config.Component.Group
-	}
-	if config.Component.Version != "" {
-		merged.Metadata.Component.Version = config.Component.Version
-	}
-	if config.Component.Description != "" {
-		merged.Metadata.Component.Description = config.Component.Description
-	}
-	if config.Component.Licenses != nil {
-		merged.Metadata.Component.Licenses = config.Component.Licenses
-	}
-	if config.Component.Manufacturer != nil {
-		merged.Metadata.Component.Manufacturer = config.Component.Manufacturer
-	}
-	if config.Component.Supplier != nil {
-		merged.Metadata.Component.Supplier = config.Component.Supplier
-	}
-
+	// set component metadata from config
+	mergedMetadataComponent := mergex.MergeComponent(*merged.Metadata.Component, config.Component)
+	merged.Metadata.Component = &mergedMetadataComponent
+	
 	// author
 	if config.Author.Name != "" {
 		merged.Metadata.Authors = &[]cdx.OrganizationalContact{
