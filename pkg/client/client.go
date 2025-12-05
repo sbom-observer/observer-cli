@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -121,8 +122,19 @@ func (c *ObserverClient) UploadDirectory(directoryPath string, fields map[string
 
 type FileSource func(w io.Writer) error
 
+func isAlreadyCompressed(filename string) bool {
+	ext := strings.ToLower(filepath.Ext(filename))
+	return ext == ".gz" || ext == ".zip"
+}
+
 func (c *ObserverClient) uploadSource(url string, filename string, source FileSource, fields map[string]string) ([]byte, error) {
-	log.Debug("uploading file", "filename", filename)
+	// gzip the file unless it's already compressed
+	shouldGzip := !isAlreadyCompressed(filename)
+	if shouldGzip {
+		filename = filename + ".gz"
+	}
+
+	log.Debug("uploading file", "filename", filename, "gzip", shouldGzip)
 
 	// create multipart body
 	body := &bytes.Buffer{}
@@ -137,10 +149,23 @@ func (c *ObserverClient) uploadSource(url string, filename string, source FileSo
 
 	part, _ := writer.CreateFormFile("files", filename)
 
-	// collect contents
-	err := source(part)
-	if err != nil {
-		return nil, err
+	// collect contents, gzipping if needed
+	var err error
+	if shouldGzip {
+		gzipWriter := gzip.NewWriter(part)
+		err = source(gzipWriter)
+		if err != nil {
+			return nil, err
+		}
+		err = gzipWriter.Close()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = source(part)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = writer.Close()
