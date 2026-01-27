@@ -48,7 +48,7 @@ func (s *TrivyScanner) Priority() int {
 func (s *TrivyScanner) Scan(target *ScanTarget) error {
 	// create args
 	output := filepath.Join(os.TempDir(), fmt.Sprintf("sbom-%s-%s.cdx.json", ids.NextUUID(), time.Now().Format("20060102-150405")))
-	args := []string{"fs", "--skip-db-update", "--skip-java-db-update", "--format", "cyclonedx", "--output", output}
+	args := []string{"fs", "--skip-db-update", "--skip-java-db-update", "--format", "cyclonedx", "--scanners", "license", "--output", output}
 
 	// skip subdirectories
 	subs, err := subDirectories(target.Path)
