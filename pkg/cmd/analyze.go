@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/sbom-observer/observer-cli/pkg/types"
 	"io"
 	"os"
 	"runtime"
 	"sort"
 	"strings"
+
+	"github.com/sbom-observer/observer-cli/pkg/types"
 
 	"golang.org/x/term"
 
@@ -40,11 +41,15 @@ func init() {
 	rootCmd.AddCommand(analyzeCmd)
 	analyzeCmd.Flags().Bool("fail", false, "exit(1) if any policy violations with action 'fail-build' are found")
 	analyzeCmd.Flags().BoolP("summary", "s", false, "only output summaries")
+	analyzeCmd.Flags().StringP("format", "f", "", "output format (excel)")
+	analyzeCmd.Flags().StringP("output", "o", "", "output file path")
 }
 
 func AnalyzeCommand(cmd *cobra.Command, args []string) {
 	flagFail, _ := cmd.Flags().GetBool("fail")
 	flagSummary, _ := cmd.Flags().GetBool("summary")
+	format, _ := cmd.Flags().GetString("format")
+	outputFile, _ := cmd.Flags().GetString("output")
 
 	if len(args) != 1 {
 		log.Fatal("missing required argument <file>")
@@ -60,9 +65,20 @@ func AnalyzeCommand(cmd *cobra.Command, args []string) {
 
 	log.Printf("Analyzed %s", args[0])
 
-	fmt.Println()
-	renderSpeculationResult(os.Stdout, result, flagSummary)
-	fmt.Println()
+	if format == "excel" {
+		if outputFile == "" {
+			log.Fatal("--output is required when using --format excel")
+		}
+		if err := renderExcelReport(outputFile, result); err != nil {
+			log.Error("error writing excel", "err", err)
+			os.Exit(1)
+		}
+		log.Printf("Report written to %s", outputFile)
+	} else {
+		fmt.Println()
+		renderSpeculationResult(os.Stdout, result, flagSummary)
+		fmt.Println()
+	}
 
 	// highlight limitations
 	if c.Config.Token == "" {
@@ -110,7 +126,7 @@ func renderSpeculativeVulnerabilities(w io.Writer, isTerminalWriter bool, result
 	t.SetAutoMerge(true)
 	t.SetAutoMergeHeaders(true)
 	t.SetHeaders("Package", "Vulnerability")
-	t.AddHeaders("Name", "Version", "Identifier", "Analysis", "Severity", "EPSS", "Patched Versions", "Title")
+	t.AddHeaders("Name", "Version", "Identifier", "Analysis", "Severity", "EPSS", "Patched Versions", "Title", "Date")
 	t.SetHeaderColSpans(0, 2, 6)
 
 	for _, v := range vulnerabilities {
@@ -140,6 +156,7 @@ func renderSpeculativeVulnerabilities(w io.Writer, isTerminalWriter bool, result
 			fmt.Sprintf("%.2f%%", v.EPSS*100),
 			patchedVersions,
 			v.Title,
+			v.Published.Format("2006-01-02"),
 		)
 	}
 
@@ -166,11 +183,7 @@ func renderSpeculativeViolations(w io.Writer, isTerminalWriter bool, result *cli
 	})
 
 	// render table
-	t := table.New(w)
-	if isTerminalWriter {
-		t.SetHeaderStyle(table.StyleBold)
-		t.SetLineStyle(table.StyleDim)
-	}
+	t := newTableWriter(w, isTerminalWriter)
 	t.SetAutoMerge(true)
 	t.SetAutoMergeHeaders(true)
 	t.SetHeaders("Component", "Policy Violation")
@@ -255,13 +268,10 @@ func newTableWriter(w io.Writer, isTerminalWriter bool) *table.Table {
 	t := table.New(w)
 
 	// markdown
-	/*
-		t.SetDividers(table.MarkdownDividers)
-
-		t.SetBorderTop(false)
-		t.SetBorderBottom(false)
-		t.SetRowLines(false)
-	*/
+	t.SetDividers(table.MarkdownDividers)
+	t.SetBorderTop(false)
+	t.SetBorderBottom(false)
+	t.SetRowLines(false)
 
 	// bug: the table is not rendering correctly in some terminals
 	if isTerminalWriter {
